@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeiBi Bibliography Manager</title>
+    <script src="https://unpkg.com/docx@9.5.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- ADD THESE AG-GRID LINES -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/dist/ag-grid-community.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-theme-alpine.css">
+
+    <!-- Your existing CSS -->
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            
+            <h1 class="app-title">KeiBi Bibliography Manager</h1>
+            
+            <div class="sidebar-tabs"> 
+                <button class="sidebar-tab active" data-sidebar-tab="controls">Configuration</button>
+                <button class="sidebar-tab" data-sidebar-tab="styles">Style Templates</button>
+            </div>
+            
+            <div class="sidebar-content space-y-6" id="controls-tab">
+                <div class="control-group">
+                    <h2>1. File Management</h2>
+                    <p>Work with CSV files from your reference manager:</p>
+                    
+                    <!-- Traditional file input (will be hidden if File System API is available) -->
+                    <div id="legacyFileInput">
+                        <input type="file" id="csvFile" accept=".csv">
+                    </div>
+                    
+                    <!-- File System API button (will be shown if supported) -->
+                    <div id="fsApiButtons" class="space-y-2 hidden">
+                        <button id="openFileBtn" class="btn-action" style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin-right: 4px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                            </svg>
+                            Open CSV File
+                        </button>
+                    </div>
+                    
+                    <div id="uploadStatus" class="status"></div>
+                    <div id="csvPreview" style="margin-top: 12px; padding: 12px; border: 1px solid var(--color-border-primary); border-radius: 6px; max-height: 128px; overflow-y: auto; background-color: white; font-size: 12px; font-family: var(--font-family-mono);"></div>
+                </div>
+                
+                <div class="control-group">
+                    <h2>2. Configure Options</h2>
+                    <div class="options space-y-4">
+                        <div>
+                            <label for="sortOption" style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px;">Sort by:</label>
+                            <select id="sortOption">
+                                <option value="author">Author/Editor Name</option>
+                                <option value="title">Title</option>
+                                <option value="year">Year (newest first)</option>
+                                <option value="yearReverse">Year (oldest first)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px;">Entry Types:</label>
+                            <div id="entryTypesContainer" style="margin-top: 4px; padding: 8px; border: 1px solid var(--color-border-primary); border-radius: 6px; max-height: 192px; overflow-y: auto; background-color: white;">
+                                <p style="font-size: 12px; font-style: italic; color: var(--color-text-secondary);">Loading entry types...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-content space-y-6" id="styles-tab" style="display: none;">
+                <div id="styleEditorsContainer" class="space-y-6">
+                    <!-- Style editors will be populated by JavaScript -->
+                </div>
+                
+                <div class="custom-style-adder space-y-3">
+                    <h3>Add New Style Type</h3>
+                    <div>
+                        <label for="customStyleName" style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px;">New Style Type Name:</label>
+                        <input type="text" id="customStyleName" placeholder="e.g., Thesis, Report">
+                    </div>
+                    <div>
+                        <label for="customStyleFormat" style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px;">Format String:</label>
+                        <textarea id="customStyleFormat" class="format-editor" rows="3" placeholder="e.g., [AUTHORS], [TITLE] ([YEAR])." style="font-family: var(--font-family-mono);"></textarea>
+                    </div>
+                    <div class="format-description">
+                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">Available placeholders:</p>
+                        <div class="placeholders-grid">
+                            <code>[AUTHORS]</code>
+                            <code>[TITLE]</code><code>[YEAR]</code>
+                            <code>[JOURNAL]</code><code>[VOLUME]</code><code>[PAGES]</code>
+                            <code>[EDITOR]</code><code>[PUBLISHER]</code><code>[PLACE]</code>
+                            <code>[LASTNAME]</code><code>[FIRSTNAME]</code><code>[FIRST_INITIAL]</code>
+                            <code>[LASTNAME2]</code><code>[FIRSTNAME2]</code><code>[FIRST_INITIAL2]</code>
+                            <code>[REVIEWER]</code><code>[URL]</code><code>[DOI]</code>
+                            <code>[ITEM TYPE]</code>
+                            <code>[AKKADIAN]</code><code>[DETERMINATIVE]</code>
+                        </div>
+                    </div>
+                    <button id="addCustomStyleBtn" type="button" class="btn-action" style="width: 100%;">Add Custom Style</button>
+                </div>
+                <div class="style-actions">
+                    <button id="saveStylesBtn" type="button" class="flex-1 btn-action">Save All Styles</button>
+                    <button id="resetStylesBtn" type="button" class="flex-1 btn-action">Reset to Defaults</button>
+                </div>
+                <div class="styling-help">
+                    <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">Styling Guide</h3>
+                    <p style="font-size: 12px;">Add suffixes for styling (e.g., <code>[LASTNAME:bold]</code>).</p>
+                    <ul style="font-size: 12px; margin-top: 4px;">
+                        <li><code>:bold</code> - For bold text</li>
+                        <li><code>:italic</code> - For italic text (e.g., <code>[AKKADIAN:italic]</code>)</li>
+                        <li><code>:superscript</code> - For superscript text (e.g., <code>[DETERMINATIVE:superscript]</code>)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content"> 
+            <div class="tabs">
+                <button class="tab-button active" data-tab="preview">Bibliography Preview</button>
+                <button class="tab-button" data-tab="csv-editor">CSV Editing</button>
+            </div>
+            
+            <div class="tab-content" id="preview-tab">
+                <div class="output-header">
+                    <h2>Bibliography Preview</h2>
+                    <div class="flex items-center space-x-4">
+                        <div id="mainExportActions" class="export-actions-header">
+                            <button id="saveFileBtn" type="button" class="btn-action padding-condensed">Save</button>
+                            <button id="exportHTMLBtn" type="button" class="btn-action padding-condensed">Export as HTML</button>
+                        </div>
+                        <div id="entryCount" class="text-sm" style="color: var(--color-text-secondary);"></div>
+                    </div>
+                </div>
+                <div id="bibliographyOutput" contenteditable="true">
+                    <!-- Bibliography entries will appear here -->
+                </div>
+            </div>
+            
+            <div class="tab-content" id="csv-editor-tab" style="display: none;">
+                <div class="output-header">
+                    <h2>CSV Data Editor</h2>
+                    <div class="editor-controls">
+                        <button id="saveCSVBtn" type="button" class="btn-action padding-condensed">Save CSV</button>
+                    </div>
+                </div>
+                
+                <div style="padding: 24px;">
+                    <div id="csvCellDetailPreviewer">
+                        <span style="color: var(--color-text-secondary); font-style: italic;">Click a cell in the table below to see its full content here.</span>
+                    </div>
+                    
+                    <div id="csvGrid" class="ag-theme-alpine" style="height: 500px; width: 100%;"></div>
+
+                    
+                </div>
+            </div>
+
+            <!-- Format Preview Panel - Keep this as is -->
+            <div id="stylePreviewMainDisplay" class="style-preview-compact" style="display: none; background-color: var(--color-bg-secondary); padding: 16px; border-radius: 8px; box-shadow: var(--shadow-sm);">
+                <h3 style="font-size: 20px; font-weight: 600; border-bottom: 1px solid var(--color-border-primary); padding-bottom: 8px; margin-bottom: 12px;">Style Format Preview</h3>
+                
+                <div id="formatPreviewPanel" style="background-color: white; border: 1px solid var(--color-border-primary); border-radius: 6px; padding: 12px; max-height: calc(100vh - 200px); overflow-y: auto;">
+                    <!-- Format previews will be populated here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="file-system.js"></script>
+
+</body>
+</html>

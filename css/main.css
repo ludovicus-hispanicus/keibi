@@ -1,0 +1,806 @@
+/* ==========================================================================
+   MAIN STYLESHEET - Bibliography Manager
+   File: css/main.css
+   ========================================================================== */
+
+/* 📦 IMPORT DESIGN SYSTEM MODULES */
+@import url('./tokens.css');
+@import url('./components.css');
+@import url('./layout.css');
+@import url('./table.css');
+
+/* ==========================================================================
+   LEGACY COMPATIBILITY - Direct styles for existing classes
+   ========================================================================== */
+
+/* Reset and base */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family-sans);
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+    color: var(--color-text-primary);
+    margin: 0;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* App structure */
+.app-container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width-min);
+    background-color: var(--color-bg-overlay);
+    border-right: 1px solid var(--color-border-primary);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-shadow: var(--shadow-sm);
+}
+
+.main-content {
+    flex: 1;
+    background-color: var(--color-bg-primary);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-content {
+    flex: 1;
+    padding: var(--space-6);
+    overflow-y: auto;
+}
+
+/* Buttons */
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background-color: var(--color-bg-accent);
+    color: var(--color-text-inverse);
+    border: 1px solid transparent;
+    border-radius: var(--radius-base);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    outline: none;
+    text-decoration: none;
+}
+
+.btn-action:hover {
+    background-color: var(--primary-700);
+}
+
+.btn-action:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+}
+
+.btn-action.padding-condensed {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-xs);
+}
+
+/* Form elements */
+input[type="text"], 
+input[type="file"], 
+select, 
+textarea {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-base);
+    background-color: var(--color-bg-overlay);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--color-border-focus);
+    box-shadow: var(--focus-ring);
+}
+
+input::placeholder, textarea::placeholder {
+    color: var(--color-text-secondary);
+}
+
+label {
+    display: block;
+    margin-bottom: var(--space-1);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+}
+
+/* Table styles */
+.csv-table-container {
+    background-color: var(--color-bg-overlay);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.csv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+    table-layout: fixed;
+}
+
+.csv-table thead th {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border-primary);
+    border-right: 1px solid var(--color-border-primary);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 120px;
+    height: var(--table-header-height);
+}
+
+.csv-table tbody tr {
+    transition: background-color var(--transition-fast);
+}
+
+.csv-table tbody td {
+    padding: 0;
+    border-bottom: 1px solid var(--color-border-primary);
+    border-right: 1px solid var(--color-border-primary);
+    position: relative;
+    height: var(--table-row-height);
+    min-height: var(--table-row-height);
+    vertical-align: top;
+}
+
+.cell-content-wrapper {
+    padding: var(--space-2) var(--space-3);
+    height: var(--table-row-height);
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    color: var(--color-text-primary);
+    line-height: var(--line-height-tight);
+}
+
+.cell-content-wrapper:hover {
+    background-color: var(--color-surface-hover);
+}
+
+.csv-table tbody td.selected-cell {
+    position: relative;
+    z-index: 10;
+}
+
+.csv-table tbody td.selected-cell .cell-content-wrapper {
+    background-color: var(--color-surface-selected);
+    box-shadow: inset 0 0 0 2px var(--color-border-accent);
+}
+
+.csv-table tbody td.editing {
+    padding: 0;
+    background-color: var(--color-bg-overlay) !important;
+    z-index: 15;
+}
+
+.edit-input {
+    width: 100%;
+    height: var(--table-row-height);
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    color: var(--color-text-primary);
+    box-shadow: inset 0 0 0 2px var(--primary-600);
+    border-radius: 0;
+}
+
+/* Navigation */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border-primary);
+    background-color: var(--color-bg-overlay);
+    padding: 0 var(--space-6);
+}
+
+.tab-button {
+    padding: var(--space-4) var(--space-6);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.tab-button:hover {
+    color: var(--color-text-accent);
+}
+
+.tab-button.active {
+    color: var(--color-text-accent);
+    border-bottom-color: var(--color-border-accent);
+    background-color: var(--color-bg-primary);
+}
+
+.sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border-primary);
+    background-color: var(--color-bg-secondary);
+}
+
+.sidebar-tab {
+    flex: 1;
+    padding: var(--space-4);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border-bottom: 2px solid transparent;
+}
+
+.sidebar-tab:hover {
+    background-color: var(--color-surface-hover);
+    color: var(--color-text-accent);
+}
+
+.sidebar-tab.active {
+    background-color: var(--color-bg-overlay);
+    color: var(--color-text-accent);
+    border-bottom-color: var(--color-border-accent);
+}
+
+/* Content areas */
+#bibliographyOutput {
+    background-color: var(--color-bg-overlay);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    font-family: var(--font-family-serif);
+    line-height: var(--line-height-relaxed);
+    box-shadow: var(--shadow-sm);
+    overflow-y: auto;
+    flex-grow: 1;
+    margin: var(--space-6);
+}
+
+#csvCellDetailPreviewer {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin-bottom: var(--space-6);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    min-height: 60px;
+}
+
+/* ==========================================================================
+   SPECIFIC COMPONENT STYLES
+   ========================================================================== */
+
+.app-title {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+    color: var(--color-text-inverse);
+    padding: var(--space-6);
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -0.025em;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+.entry {
+    font-family: var(--font-family-serif);
+    color: var(--color-text-primary);
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+.entry:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.tag {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    font-style: italic;
+    font-family: var(--font-family-sans);
+}
+
+.bold { font-weight: var(--font-weight-bold); }
+.italic { font-style: italic; }
+.superscript { 
+    vertical-align: super; 
+    font-size: 0.8em; 
+}
+
+.status-success { 
+    color: var(--color-text-accent);
+    font-size: var(--font-size-sm);
+}
+
+.status-error { 
+    color: #dc2626;
+    font-size: var(--font-size-sm);
+}
+
+.control-group {
+    background-color: var(--color-bg-overlay);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.control-group h2 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-4) 0;
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+.control-group p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-4);
+    line-height: var(--line-height-normal);
+}
+
+.custom-style-adder {
+    background-color: var(--color-bg-overlay);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    margin-top: var(--space-6);
+    box-shadow: var(--shadow-sm);
+}
+
+.custom-style-adder h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-4) 0;
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border-primary);
+}
+
+.format-description {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-base);
+    padding: var(--space-4);
+    margin-top: var(--space-3);
+}
+
+.placeholders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.placeholders-grid code {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    background-color: var(--primary-50);
+    color: var(--primary-700);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    display: inline-block;
+}
+
+.style-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+}
+
+.styling-help {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+}
+
+.styling-help h3 {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-2) 0;
+}
+
+.styling-help p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0 0 var(--space-3) 0;
+}
+
+.styling-help ul {
+    margin: 0;
+    padding-left: var(--space-5);
+}
+
+.styling-help li {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-1);
+}
+
+.styling-help code {
+    font-family: var(--font-family-mono);
+    background-color: var(--primary-50);
+    color: var(--primary-700);
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-sm);
+}
+
+/* Header styles */
+.output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-border-primary);
+    background-color: var(--color-bg-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.output-header h2 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.export-actions-header {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+}
+
+/* Utility classes */
+.flex { display: flex; }
+.flex-1 { flex: 1; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.space-x-2 > * + * { margin-left: var(--space-2); }
+.space-x-4 > * + * { margin-left: var(--space-4); }
+.space-y-3 > * + * { margin-top: var(--space-3); }
+.space-y-4 > * + * { margin-top: var(--space-4); }
+.space-y-6 > * + * { margin-top: var(--space-6); }
+.hidden { display: none; }
+.text-sm { font-size: var(--font-size-sm); }
+.text-xs { font-size: var(--font-size-xs); }
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+
+/* Tab content */
+.tab-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .app-container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        min-width: auto;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border-primary);
+    }
+    
+    .main-content {
+        height: calc(100vh - 200px);
+    }
+    
+    .csv-table {
+        font-size: var(--font-size-xs);
+    }
+    
+    .cell-content-wrapper,
+    .edit-input {
+        height: 32px;
+        min-height: 32px;
+    }
+}
+
+/* ==========================================================================
+   BIBLIOGRAPHY PREVIEW FIXES
+   Add these styles to your main.css file
+   ========================================================================== */
+
+/* 📚 BIBLIOGRAPHY OUTPUT CONTAINER */
+#bibliographyOutput {
+    background-color: var(--color-bg-overlay);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    font-family: var(--font-family-serif);
+    line-height: var(--line-height-relaxed);
+    box-shadow: var(--shadow-sm);
+    
+    /* CRITICAL: Make it scrollable */
+    overflow-y: auto;
+    flex: 1; /* Take remaining space */
+    height: 100%; /* Ensure height is defined */
+    max-height: calc(100vh - 200px); /* Prevent overflow */
+    
+    /* Content formatting */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    
+    /* Text selection */
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+/* 📝 BIBLIOGRAPHY ENTRIES */
+.entry {
+    font-family: var(--font-family-serif);
+    color: var(--color-text-primary);
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border-primary);
+    
+    /* Ensure proper spacing */
+    display: block;
+    width: 100%;
+}
+
+.entry:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* 🎨 TEXT FORMATTING CLASSES */
+.bold, 
+.font-bold, 
+strong {
+    font-weight: var(--font-weight-bold) !important;
+}
+
+.italic, 
+em, 
+i {
+    font-style: italic !important;
+}
+
+.superscript,
+sup {
+    vertical-align: super;
+    font-size: 0.8em;
+    line-height: 0;
+}
+
+/* 🏷️ TAGS AND METADATA */
+.tag {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    font-style: italic;
+    font-family: var(--font-family-sans);
+    margin-left: var(--space-2);
+}
+
+/* ✏️ EDITABLE FIELDS */
+.editable-field {
+    display: inline;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    padding: 0;
+    margin: 0;
+    
+    /* Subtle indication that field is editable */
+    border-bottom: 1px dotted transparent;
+    transition: border-bottom-color var(--transition-fast);
+}
+
+.editable-field:hover {
+    border-bottom-color: var(--color-border-accent);
+    background-color: var(--color-surface-hover);
+}
+
+.editable-field:focus {
+    border-bottom-color: var(--color-border-accent);
+    background-color: var(--color-surface-selected);
+    outline: none;
+}
+
+/* 📋 PREVIEW TAB LAYOUT */
+#preview-tab {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent container overflow */
+}
+
+.output-header {
+    flex-shrink: 0; /* Don't shrink the header */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-border-primary);
+    background-color: var(--color-bg-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* 🎭 CONTEXT MENU */
+.custom-context-menu {
+    position: absolute;
+    background-color: var(--color-bg-overlay);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-base);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-1) 0;
+    z-index: 1000;
+    display: none;
+    min-width: 150px;
+}
+
+.context-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.context-menu-item:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+    color: var(--color-text-accent);
+}
+
+.context-menu-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    color: var(--color-text-secondary);
+}
+
+/* 📱 RESPONSIVE ADJUSTMENTS */
+@media (max-width: 768px) {
+    #bibliographyOutput {
+        padding: var(--space-4);
+        font-size: var(--font-size-sm);
+        max-height: calc(100vh - 150px);
+    }
+    
+    .entry {
+        text-indent: -0.25in;
+        padding-left: 0.25in;
+        margin-bottom: var(--space-3);
+    }
+    
+    .output-header {
+        padding: var(--space-3) var(--space-4);
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+    
+    .export-actions-header {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* 🔍 HIGH CONTRAST MODE */
+@media (prefers-contrast: high) {
+    .entry {
+        border-bottom-color: var(--color-text-primary);
+    }
+    
+    .editable-field:hover,
+    .editable-field:focus {
+        background-color: var(--color-text-primary);
+        color: var(--color-bg-overlay);
+    }
+}
+
+/* 🎨 ADDITIONAL FORMATTING HELPERS */
+.preview-text {
+    border-left: 3px solid var(--color-border-accent);
+    padding-left: var(--space-3);
+    background-color: var(--color-bg-secondary);
+    border-radius: 0 var(--radius-base) var(--radius-base) 0;
+}
+
+/* 📊 STATUS AND INFO */
+.status {
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-success { 
+    color: var(--color-text-accent);
+    background-color: var(--color-surface-selected);
+}
+
+.status-error { 
+    color: #dc2626;
+    background-color: #fee2e2;
+}
+
+/* 🎯 ENSURE PROPER INHERITANCE */
+#bibliographyOutput * {
+    font-family: inherit;
+    line-height: inherit;
+}
+
+/* Fix for contenteditable */
+#bibliographyOutput[contenteditable="true"]:focus {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
