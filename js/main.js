@@ -1,11 +1,9 @@
-// Main initialization and coordination
+// Main initialization and coordination - FIXED VERSION
 import { globalState } from './state/globalState.js';
 
 // Import all the managers/handlers we need
 let styleManager, tabManager, fileHandler, previewContextMenu, csvNavigation, exportManager;
-let agGridApi = null; // AG-Grid API reference
-let agGridColumnApi = null; // AG-Grid Column API reference
-let currentGridInstance = null; // Current grid instance
+let csvManager = null; // FIXED: Added csvManager reference
 
 // Main application class
 class BibliographyManager {
@@ -31,14 +29,16 @@ class BibliographyManager {
                 FileHandlerModule,
                 PreviewContextMenuModule,
                 CSVNavigationModule,
-                ExportManagerModule
+                ExportManagerModule,
+                CSVManagerModule // FIXED: Added CSV Manager import
             ] = await Promise.all([
                 import('./styles/styleManager.js'),
                 import('./ui/tabManager.js'),
                 import('./ui/fileHandler.js'),
                 import('./preview/contextMenu.js'),
                 import('./csvEditor/navigation.js'),
-                import('./rightColumn/exportManager.js')
+                import('./rightColumn/exportManager.js'),
+                import('./csvEditor/csvManager.js') // FIXED: Added this import
             ]);
 
             // Initialize all managers
@@ -48,6 +48,10 @@ class BibliographyManager {
             previewContextMenu = new PreviewContextMenuModule.PreviewContextMenu();
             csvNavigation = new CSVNavigationModule.CSVNavigation();
             exportManager = new ExportManagerModule.ExportManager();
+            csvManager = new CSVManagerModule.CSVManager(); // FIXED: Initialize CSV Manager
+
+            // FIXED: Make csvManager globally accessible for tab switching
+            globalState.csvManager = csvManager;
 
             this.managersInitialized = true;
             console.log('All managers initialized successfully');
@@ -87,6 +91,11 @@ class BibliographyManager {
         if (globalState.csvCellDetailPreviewer) {
             globalState.csvCellDetailPreviewer.innerHTML = '<p class="text-gray-500 italic">Click a cell in the table to see its full content here.</p>';
         }
+
+        // FIXED: Add cleanup when window is unloaded
+        window.addEventListener('beforeunload', () => {
+            this.cleanup();
+        });
     }
 
     setupEventListeners() {
@@ -185,7 +194,7 @@ class BibliographyManager {
 
     async handlePreviewInputChange(event) {
         try {
-            const module = await import('./preview/bibliographyGenerator.js');
+            const module = await import('./preview/BibliographyGenerator.js');
             const generator = new module.BibliographyGenerator();
             generator.handlePreviewInputChange(event);
         } catch (error) {
@@ -195,7 +204,7 @@ class BibliographyManager {
 
     async generateBibliography() {
         try {
-            const module = await import('./preview/bibliographyGenerator.js');
+            const module = await import('./preview/BibliographyGenerator.js');
             const generator = new module.BibliographyGenerator();
             return generator.generateBibliography();
         } catch (error) {
@@ -203,12 +212,26 @@ class BibliographyManager {
             return 0;
         }
     }
+
+    // FIXED: Add cleanup method
+    cleanup() {
+        console.log('Cleaning up Bibliography Manager...');
+        if (csvManager) {
+            csvManager.cleanup();
+        }
+    }
 }
+
+// FIXED: Make app globally accessible for debugging
+let app;
 
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Bibliography Manager initializing...');
-    const app = new BibliographyManager();
+    app = new BibliographyManager();
     await app.init();
     console.log('Bibliography Manager initialized successfully');
+    
+    // FIXED: Make app accessible globally for debugging
+    window.bibliographyApp = app;
 });

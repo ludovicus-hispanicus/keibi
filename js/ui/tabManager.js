@@ -1,9 +1,10 @@
 import { globalState } from '../state/globalState.js';
 
-// Tab switching functionality
+// Tab switching functionality - FIXED VERSION
 export class TabManager {
     constructor() {
         this.lastActiveMainTabId = 'preview-tab';
+        this.csvTabInitialized = false; // FIXED: Track CSV tab initialization
         this.setupEventListeners();
     }
 
@@ -22,7 +23,17 @@ export class TabManager {
 
     handleMainTabClick(button) {
         const tabId = button.dataset.tab;
-        this.lastActiveMainTabId = `${tabId}-tab`;
+        const newTabId = `${tabId}-tab`;
+        
+        console.log(`[handleMainTabClick] Switching from ${this.lastActiveMainTabId} to ${newTabId}`);
+        
+        // FIXED: Prevent unnecessary switching
+        if (this.lastActiveMainTabId === newTabId) {
+            console.log('[handleMainTabClick] Already on target tab, skipping');
+            return;
+        }
+        
+        this.lastActiveMainTabId = newTabId;
         
         this.updateMainTabStyles(button);
         this.showMainTabContent(tabId);
@@ -54,19 +65,56 @@ export class TabManager {
         }
     }
 
+    // FIXED: Completely rewritten to prevent duplication
     async handleCSVEditorTabActivation() {
-        if (globalState.csvData.length > 0) {
-            try {
-                const module = await import('../csvEditor/csvManager.js');
-                const manager = new module.CSVManager();
-                manager.displayCSVTable();
-            } catch (error) {
-                console.error('Error loading CSV manager:', error);
-            }
-        }
+        console.log('[handleCSVEditorTabActivation] CSV Editor tab activated');
         
-        if (globalState.csvCellDetailPreviewer) {
-            globalState.csvCellDetailPreviewer.style.display = 'block';
+        try {
+            // Check if CSV data exists
+            if (!globalState.csvData || globalState.csvData.length === 0) {
+                console.log('[handleCSVEditorTabActivation] No CSV data available');
+                const csvGrid = document.getElementById('csvGrid');
+                if (csvGrid) {
+                    csvGrid.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-secondary); font-style: italic;">Please upload a CSV file first.</div>';
+                }
+                return;
+            }
+
+            // FIXED: Use the csvManager from globalState instead of creating new one
+            if (globalState.csvManager) {
+                // Check if grid is already ready and just needs refresh
+                if (globalState.csvManager.isGridReady && globalState.csvManager.isGridReady()) {
+                    console.log('[handleCSVEditorTabActivation] Grid already exists and is ready, refreshing data...');
+                    if (globalState.csvManager.refreshGrid && globalState.csvManager.refreshGrid()) {
+                        console.log('[handleCSVEditorTabActivation] Successfully refreshed existing grid');
+                        return; // Successfully refreshed, no need to recreate
+                    }
+                }
+                
+                // If refresh failed or grid doesn't exist, display table
+                console.log('[handleCSVEditorTabActivation] Displaying CSV table...');
+                globalState.csvManager.displayCSVTable();
+                this.csvTabInitialized = true;
+                
+            } else {
+                // FIXED: If csvManager doesn't exist in globalState, something is wrong
+                console.error('[handleCSVEditorTabActivation] csvManager not found in globalState!');
+                console.log('[handleCSVEditorTabActivation] Available in globalState:', Object.keys(globalState));
+                
+                // Fallback: Try to create one
+                console.log('[handleCSVEditorTabActivation] Creating fallback CSV manager...');
+                const CSVManagerModule = await import('../csvEditor/csvManager.js');
+                globalState.csvManager = new CSVManagerModule.CSVManager();
+                globalState.csvManager.displayCSVTable();
+                this.csvTabInitialized = true;
+            }
+            
+        } catch (error) {
+            console.error('[handleCSVEditorTabActivation] Error:', error);
+            const csvGrid = document.getElementById('csvGrid');
+            if (csvGrid) {
+                csvGrid.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #dc2626;">Error loading CSV editor: ' + error.message + '</div>';
+            }
         }
     }
 
@@ -132,6 +180,12 @@ export class TabManager {
             
             if (this.lastActiveMainTabId === 'csv-editor-tab' && globalState.csvCellDetailPreviewer) {
                 globalState.csvCellDetailPreviewer.style.display = 'block';
+                
+                // FIXED: When returning to CSV tab, check if we need to refresh the grid
+                if (globalState.csvManager && globalState.csvManager.isGridReady && !globalState.csvManager.isGridReady()) {
+                    console.log('[handleControlsTabActivation] CSV tab was selected but grid not ready, re-initializing...');
+                    this.handleCSVEditorTabActivation();
+                }
             } else if (globalState.csvCellDetailPreviewer) {
                 globalState.csvCellDetailPreviewer.style.display = 'none';
             }
@@ -156,6 +210,16 @@ export class TabManager {
     switchToPreviewTab() {
         const previewTabButton = document.querySelector('.tab-button[data-tab="preview"]');
         if (previewTabButton) previewTabButton.click();
+    }
+
+    // FIXED: Add cleanup method
+    resetCSVTabState() {
+        console.log('[resetCSVTabState] Resetting CSV tab state');
+        this.csvTabInitialized = false;
+        
+        if (globalState.csvManager && globalState.csvManager.cleanup) {
+            globalState.csvManager.cleanup();
+        }
     }
 
     initializeDefaultTabs() {

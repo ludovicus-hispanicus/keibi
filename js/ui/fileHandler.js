@@ -112,7 +112,7 @@ export class FileHandler {
             manager.updateEntryTypesDropdown();
             
             // Generate initial bibliography
-            const bibliographyModule = await import('../preview/bibliographyGenerator.js');
+            const bibliographyModule = await import('../preview/BibliographyGenerator.js');
             const generator = new bibliographyModule.BibliographyGenerator();
             generator.generateBibliography();
             

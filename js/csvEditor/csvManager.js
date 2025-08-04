@@ -2,15 +2,15 @@ import { globalState } from '../state/globalState.js';
 import { CSV_CONFIG } from '../config/constants.js';
 import { CellEditor } from './cellEditor.js';
 
-// Enhanced CSV table with AG-Grid
+// Enhanced CSV table with AG-Grid - FIXED VERSION
 export class CSVManager {
     constructor() {
         this.cellEditor = new CellEditor();
         
         // AG-Grid specific properties
-        this.agGridApi = null;
-        this.agGridColumnApi = null;
+        this.gridApi = null; // Updated: Use gridApi instead of agGridApi
         this.currentGridInstance = null;
+        this.gridInitialized = false; // Track initialization state
         
         console.log('[CSVManager] AG-Grid enhanced constructor called');
     }
@@ -37,6 +37,34 @@ export class CSVManager {
             return;
         }
 
+        // Check if grid is already initialized and has the same data
+        if (this.gridInitialized && this.gridApi) {
+            console.log('[displayCSVTable] Grid already exists, checking if refresh is needed...');
+            
+            // Get current row count
+            let currentRowCount = 0;
+            this.gridApi.forEachNode(() => currentRowCount++);
+            
+            // If data hasn't changed significantly, just refresh
+            if (currentRowCount === globalState.csvData.length) {
+                console.log('[displayCSVTable] Refreshing existing grid data');
+                this.gridApi.setGridOption('rowData', [...globalState.csvData]);
+                this.gridApi.sizeColumnsToFit();
+                return;
+            }
+        }
+
+        // Only destroy and recreate if necessary
+        if (this.gridApi) {
+            console.log('[displayCSVTable] Destroying existing grid');
+            this.gridApi.destroy();
+            this.gridApi = null;
+            this.gridInitialized = false;
+        }
+
+        // Clear container
+        gridContainer.innerHTML = '';
+
         // Create column definitions from CSV headers
         const columnDefs = globalState.csvHeaders.map(header => ({
             field: header,
@@ -57,7 +85,7 @@ export class CSVManager {
             }
         }));
 
-        // Grid options
+        // FIXED: Updated grid options with correct AG-Grid v31+ properties
         const gridOptions = {
             columnDefs: columnDefs,
             rowData: [...globalState.csvData], // Create a copy
@@ -71,9 +99,8 @@ export class CSVManager {
                 minWidth: 100
             },
 
-            // Selection settings
+            // Selection settings - REMOVED enableRangeSelection (Enterprise only)
             rowSelection: 'single',
-            enableRangeSelection: true,
             
             // Event handlers
             onCellValueChanged: (event) => {
@@ -85,35 +112,28 @@ export class CSVManager {
             },
 
             onGridReady: (params) => {
-                this.agGridApi = params.api;
-                this.agGridColumnApi = params.columnApi;
                 console.log('AG-Grid ready with', globalState.csvData.length, 'rows');
                 
                 // Auto-size columns to fit
                 params.api.sizeColumnsToFit();
             },
 
-            // UI settings
-            enableSorting: true,
-            enableFilter: true,
+            // UI settings - REMOVED invalid options
             animateRows: true,
             
-            // Keyboard navigation (AG-Grid handles this automatically)
+            // Keyboard navigation
             suppressRowClickSelection: false,
             suppressCellFocus: false,
             
-            // Enter key behavior
-            enterMovesDown: true,
-            enterMovesDownAfterEdit: true
+            // FIXED: Updated navigation properties
+            enterNavigatesVertically: true,
+            enterNavigatesVerticallyAfterEdit: true
         };
 
-        // Destroy existing grid if it exists
-        if (this.currentGridInstance) {
-            this.currentGridInstance.destroy();
-        }
-
-        // Create new grid
-        this.currentGridInstance = new agGrid.Grid(gridContainer, gridOptions);
+        // FIXED: Use createGrid instead of new Grid()
+        console.log('[displayCSVTable] Creating new AG-Grid instance with createGrid()');
+        this.gridApi = agGrid.createGrid(gridContainer, gridOptions);
+        this.gridInitialized = true;
         
         // Update cell previewer
         if (globalState.csvCellDetailPreviewer) {
@@ -167,7 +187,7 @@ export class CSVManager {
         
         // Update the cell detail previewer using existing CellEditor
         if (this.cellEditor && this.cellEditor.showAgGridCellInPreviewer) {
-            this.cellEditor.showAgGridCellInPreviewer(rowIndex, fieldName, value, this.agGridApi);
+            this.cellEditor.showAgGridCellInPreviewer(rowIndex, fieldName, value, this.gridApi);
         } else {
             // Fallback to local method
             this.showAgGridCellInPreviewer(rowIndex, fieldName, value);
@@ -203,8 +223,8 @@ export class CSVManager {
             }
             
             // Update AG-Grid
-            if (this.agGridApi) {
-                const rowNode = this.agGridApi.getRowNode(rowIndex);
+            if (this.gridApi) {
+                const rowNode = this.gridApi.getRowNode(rowIndex);
                 if (rowNode) {
                     rowNode.setDataValue(fieldName, newValue);
                 }
@@ -240,7 +260,33 @@ export class CSVManager {
         setTimeout(() => textarea.focus(), 100); // Small delay for better UX
     }
 
-    // Export functionality (keeping your existing logic)
+    // FIXED: Add method to check if grid exists and is ready
+    isGridReady() {
+        return this.gridInitialized && this.gridApi && !this.gridApi.isDestroyed();
+    }
+
+    // FIXED: Add method to refresh grid without recreating
+    refreshGrid() {
+        if (this.isGridReady()) {
+            console.log('[refreshGrid] Refreshing existing grid');
+            this.gridApi.setGridOption('rowData', [...globalState.csvData]);
+            this.gridApi.sizeColumnsToFit();
+            return true;
+        }
+        return false;
+    }
+
+    // FIXED: Add cleanup method
+    cleanup() {
+        console.log('[cleanup] Cleaning up CSV Manager');
+        if (this.gridApi && !this.gridApi.isDestroyed()) {
+            this.gridApi.destroy();
+        }
+        this.gridApi = null;
+        this.gridInitialized = false;
+    }
+
+    // Export functionality (keeping your existing logic but with fixed API references)
     setupExportButton() {
         console.log('[setupExportButton] Setting up export functionality...');
         
@@ -278,9 +324,9 @@ export class CSVManager {
     exportCSV() {
         try {
             // Get current data from AG-Grid if available
-            if (this.agGridApi) {
+            if (this.gridApi && !this.gridApi.isDestroyed()) {
                 const currentData = [];
-                this.agGridApi.forEachNode(node => {
+                this.gridApi.forEachNode(node => {
                     if (node.data) {
                         currentData.push(node.data);
                     }
@@ -363,25 +409,8 @@ export class CSVManager {
     }
 
     clearSelection() {
-        if (this.agGridApi) {
-            this.agGridApi.deselectAll();
+        if (this.gridApi && !this.gridApi.isDestroyed()) {
+            this.gridApi.deselectAll();
         }
     }
-
-    // The following methods are no longer needed with AG-Grid but kept for compatibility:
-    /*
-    setupTableStructure() - Replaced by AG-Grid
-    setupColumnWidths() - Replaced by AG-Grid
-    populateTableData() - Replaced by AG-Grid
-    navigateToCell() - Replaced by AG-Grid built-in navigation
-    getCellAt() - Replaced by AG-Grid API
-    scrollCellIntoView() - Replaced by AG-Grid built-in scrolling
-    selectCell() - Replaced by AG-Grid selection
-    handleCellClick() - Replaced by AG-Grid events
-    handleCellFocus() - Replaced by AG-Grid events
-    startEditing() - Replaced by AG-Grid editing
-    finishEditing() - Replaced by AG-Grid editing
-    handleEditingKeyDown() - Replaced by AG-Grid editing
-    isTableFocused() - Not needed with AG-Grid
-    */
 }

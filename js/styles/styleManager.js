@@ -51,7 +51,7 @@ export class StyleManager {
         if (globalState.csvData.length > 0) {
             // Trigger bibliography regeneration
             try {
-                const module = await import('../preview/bibliographyGenerator.js');
+                const module = await import('../preview/BibliographyGenerator.js');
                 const generator = new module.BibliographyGenerator();
                 generator.generateBibliography();
             } catch (error) {

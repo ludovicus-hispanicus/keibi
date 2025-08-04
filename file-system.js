@@ -3,7 +3,7 @@
 
 // Import the new modular functions
 import { CSVParser } from './js/utils/csvParser.js';
-import { BibliographyGenerator } from './js/preview/bibliographyGenerator.js';
+import { BibliographyGenerator } from './js/preview/BibliographyGenerator.js';
 import { globalState } from './js/state/globalState.js';
 
 // Global variable to store the file handle for saving back to the same file

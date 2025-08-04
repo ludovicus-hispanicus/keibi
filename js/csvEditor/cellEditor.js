@@ -1,19 +1,19 @@
 import { globalState } from '../state/globalState.js';
 
-// Enhanced cell editing functionality with AG-Grid support and detailed logging
+// Enhanced cell editing functionality with AG-Grid support and detailed logging - FIXED VERSION
 export class CellEditor {
     constructor() {
         console.log('[CellEditor] Enhanced constructor called with AG-Grid support');
     }
 
-    // NEW: AG-Grid specific cell previewer method
-    showAgGridCellInPreviewer(rowIndex, fieldName, value, agGridApi) {
+    // FIXED: AG-Grid specific cell previewer method
+    showAgGridCellInPreviewer(rowIndex, fieldName, value, gridApi) {
         console.log(`[showAgGridCellInPreviewer] CALLED with:`, {
             rowIndex,
             fieldName,
             value: `"${value}"`,
             hasPreviewerElement: !!globalState.csvCellDetailPreviewer,
-            hasAgGridApi: !!agGridApi
+            hasGridApi: !!gridApi
         });
 
         if (!globalState.csvCellDetailPreviewer) {
@@ -47,7 +47,7 @@ export class CellEditor {
         });
 
         // Setup AG-Grid specific event listeners
-        this.setupAgGridTextareaEventListeners(textarea, agGridApi);
+        this.setupAgGridTextareaEventListeners(textarea, gridApi);
         globalState.csvCellDetailPreviewer.appendChild(textarea);
         
         console.log('[showAgGridCellInPreviewer] Added textarea to previewer');
@@ -59,13 +59,13 @@ export class CellEditor {
         }, 100);
     }
 
-    // NEW: AG-Grid specific event listeners
-    setupAgGridTextareaEventListeners(textarea, agGridApi) {
+    // FIXED: AG-Grid specific event listeners
+    setupAgGridTextareaEventListeners(textarea, gridApi) {
         console.log('[setupAgGridTextareaEventListeners] Setting up AG-Grid event listeners');
 
         const currentOnBlurHandler = (event) => {
             console.log('[agGrid.textarea.onBlur] Blur event triggered');
-            this.handleAgGridPreviewerEdit(event, agGridApi);
+            this.handleAgGridPreviewerEdit(event, gridApi);
         };
         
         const currentOnKeyDownHandler = (e) => {
@@ -74,7 +74,7 @@ export class CellEditor {
             if (e.key === 'Enter' && e.ctrlKey) {
                 console.log('[agGrid.textarea.onKeyDown] Ctrl+Enter detected, saving and blurring');
                 e.preventDefault(); 
-                this.handleAgGridPreviewerEdit(e, agGridApi); 
+                this.handleAgGridPreviewerEdit(e, gridApi); 
                 textarea.blur();
             } else if (e.key === 'Escape') {
                 console.log('[agGrid.textarea.onKeyDown] Escape detected, reverting value');
@@ -90,7 +90,7 @@ export class CellEditor {
         textarea.addEventListener('keydown', currentOnKeyDownHandler);
         textarea._onBlurHandler = currentOnBlurHandler;
         textarea._onKeyDownHandler = currentOnKeyDownHandler;
-        textarea._agGridApi = agGridApi; // Store reference for cleanup
+        textarea._gridApi = gridApi; // Store reference for cleanup
         
         // Focus/blur styling
         textarea.addEventListener('focus', () => {
@@ -105,8 +105,8 @@ export class CellEditor {
         console.log('[setupAgGridTextareaEventListeners] AG-Grid event listeners attached');
     }
 
-    // NEW: AG-Grid specific edit handler
-    handleAgGridPreviewerEdit(event, agGridApi) {
+    // FIXED: AG-Grid specific edit handler
+    handleAgGridPreviewerEdit(event, gridApi) {
         console.log('[handleAgGridPreviewerEdit] CALLED');
         
         const textarea = event.target;
@@ -161,15 +161,17 @@ export class CellEditor {
         
         console.log('[handleAgGridPreviewerEdit] Updated data in globalState');
 
-        // Update AG-Grid
-        if (agGridApi) {
-            const rowNode = agGridApi.getRowNode(rowIndex);
+        // FIXED: Update AG-Grid with proper API check
+        if (gridApi && !gridApi.isDestroyed()) {
+            const rowNode = gridApi.getRowNode(rowIndex);
             if (rowNode) {
                 rowNode.setDataValue(fieldName, newValue);
                 console.log('[handleAgGridPreviewerEdit] Updated AG-Grid cell');
             } else {
                 console.warn('[handleAgGridPreviewerEdit] Could not find AG-Grid row node');
             }
+        } else {
+            console.warn('[handleAgGridPreviewerEdit] GridApi not available or destroyed');
         }
         
         console.log('[handleAgGridPreviewerEdit] Complete');

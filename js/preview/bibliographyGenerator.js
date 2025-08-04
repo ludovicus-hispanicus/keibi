@@ -1,4 +1,4 @@
-// js/preview/bibliographyGenerator.js (Final simplified version)
+// js/preview/BibliographyGenerator.js (Final simplified version)
 import { globalState } from '../state/globalState.js';
 import { TextProcessor } from '../utils/textProcessor.js';
 import { TemplateProcessor } from './templateProcessor.js';
