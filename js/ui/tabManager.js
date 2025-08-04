@@ -109,6 +109,12 @@ export class TabManager {
                 this.csvTabInitialized = true;
             }
             
+            // FIXED: Ensure the cell detail previewer is visible
+            if (globalState.csvCellDetailPreviewer) {
+                globalState.csvCellDetailPreviewer.style.display = 'block';
+                console.log('[handleCSVEditorTabActivation] Made cell detail previewer visible');
+            }
+            
         } catch (error) {
             console.error('[handleCSVEditorTabActivation] Error:', error);
             const csvGrid = document.getElementById('csvGrid');

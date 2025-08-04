@@ -1,16 +1,13 @@
 import { globalState } from '../state/globalState.js';
 import { CSV_CONFIG } from '../config/constants.js';
-import { CellEditor } from './cellEditor.js';
 
-// Enhanced CSV table with AG-Grid - FIXED VERSION
+// Enhanced CSV table with AG-Grid - CLEAN VERSION
 export class CSVManager {
     constructor() {
-        this.cellEditor = new CellEditor();
-        
         // AG-Grid specific properties
-        this.gridApi = null; // Updated: Use gridApi instead of agGridApi
+        this.gridApi = null;
         this.currentGridInstance = null;
-        this.gridInitialized = false; // Track initialization state
+        this.gridInitialized = false;
         
         console.log('[CSVManager] AG-Grid enhanced constructor called');
     }
@@ -74,9 +71,8 @@ export class CSVManager {
             filter: true,
             resizable: true,
             minWidth: CSV_CONFIG?.STANDARD_COLUMN_WIDTH || 150,
-            flex: 1, // Auto-size columns
+            flex: 1,
             cellEditor: 'agTextCellEditor',
-            // Custom cell renderer for long text with tooltip
             cellRenderer: params => {
                 if (params.value && params.value.length > 50) {
                     return `<span title="${params.value}">${params.value}</span>`;
@@ -85,24 +81,25 @@ export class CSVManager {
             }
         }));
 
-        // FIXED: Updated grid options with correct AG-Grid v31+ properties
+        // Grid options
         const gridOptions = {
             columnDefs: columnDefs,
-            rowData: [...globalState.csvData], // Create a copy
+            rowData: [...globalState.csvData],
             
-            // Editing settings
             defaultColDef: {
                 editable: true,
                 sortable: true,
                 filter: true,
                 resizable: true,
-                minWidth: 100
+                minWidth: 100,
+                filterParams: {
+                    debounceMs: 200,
+                    suppressAndOrCondition: true
+                }
             },
 
-            // Selection settings - REMOVED enableRangeSelection (Enterprise only)
             rowSelection: 'single',
             
-            // Event handlers
             onCellValueChanged: (event) => {
                 this.handleAgGridCellEdit(event);
             },
@@ -114,23 +111,25 @@ export class CSVManager {
             onGridReady: (params) => {
                 console.log('AG-Grid ready with', globalState.csvData.length, 'rows');
                 
-                // Auto-size columns to fit
                 params.api.sizeColumnsToFit();
+                
+                const quickFilterInput = document.getElementById('quickFilterInput');
+                if (quickFilterInput) {
+                    quickFilterInput.addEventListener('input', (e) => {
+                        params.api.setGridOption('quickFilterText', e.target.value);
+                    });
+                    console.log('Quick filter search box connected');
+                }
             },
 
-            // UI settings - REMOVED invalid options
             animateRows: true,
-            
-            // Keyboard navigation
             suppressRowClickSelection: false,
             suppressCellFocus: false,
-            
-            // FIXED: Updated navigation properties
             enterNavigatesVertically: true,
             enterNavigatesVerticallyAfterEdit: true
         };
 
-        // FIXED: Use createGrid instead of new Grid()
+        // Create grid
         console.log('[displayCSVTable] Creating new AG-Grid instance with createGrid()');
         this.gridApi = agGrid.createGrid(gridContainer, gridOptions);
         this.gridInitialized = true;
@@ -140,7 +139,7 @@ export class CSVManager {
             globalState.csvCellDetailPreviewer.innerHTML = '<span style="color: var(--color-text-secondary); font-style: italic;">Click a cell in the table to see its full content here.</span>';
         }
         
-        // Update original data arrays to match
+        // Update original data arrays
         if (!globalState.originalCsvData.length && globalState.csvData.length) {
             globalState.originalCsvData = JSON.parse(JSON.stringify(globalState.csvData));
         }
@@ -148,13 +147,11 @@ export class CSVManager {
             globalState.editedCsvData = JSON.parse(JSON.stringify(globalState.csvData));
         }
 
-        // Setup export functionality
         this.setupExportButton();
 
         console.log('[displayCSVTable] AG-Grid initialized successfully');
     }
 
-    // AG-Grid event handlers
     handleAgGridCellEdit(event) {
         console.log('AG-Grid cell edited:', event.colDef.field, 'New value:', event.newValue);
         
@@ -167,7 +164,6 @@ export class CSVManager {
             return;
         }
 
-        // Update global state data arrays
         if (globalState.csvData[rowIndex]) {
             globalState.csvData[rowIndex][fieldName] = newValue;
         }
@@ -185,13 +181,7 @@ export class CSVManager {
         
         console.log('AG-Grid cell clicked:', { rowIndex, fieldName, value });
         
-        // Update the cell detail previewer using existing CellEditor
-        if (this.cellEditor && this.cellEditor.showAgGridCellInPreviewer) {
-            this.cellEditor.showAgGridCellInPreviewer(rowIndex, fieldName, value, this.gridApi);
-        } else {
-            // Fallback to local method
-            this.showAgGridCellInPreviewer(rowIndex, fieldName, value);
-        }
+        this.showAgGridCellInPreviewer(rowIndex, fieldName, value);
     }
 
     showAgGridCellInPreviewer(rowIndex, fieldName, value) {
@@ -199,22 +189,29 @@ export class CSVManager {
         
         globalState.csvCellDetailPreviewer.innerHTML = '';
 
+        // Create container for inline layout
+        const container = document.createElement('div');
+        container.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; width: 100%;';
+
         const headerDisplay = document.createElement('div');
         headerDisplay.className = 'preview-field-name';
-        headerDisplay.style.cssText = 'padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid var(--color-border-primary); color: var(--color-text-primary); font-weight: 600; font-size: 14px;';
+        headerDisplay.style.cssText = 'color: var(--color-text-primary); font-weight: 600; font-size: 14px; white-space: nowrap; padding-top: 8px;';
         headerDisplay.textContent = `${fieldName}:`;
-        globalState.csvCellDetailPreviewer.appendChild(headerDisplay);
 
         const textarea = document.createElement('textarea');
-        textarea.style.cssText = 'width: 100%; padding: 8px 12px; margin-top: 4px; border: 1px solid var(--color-border-primary); border-radius: 6px; font-size: 12px; font-family: var(--font-family-mono); background-color: white; resize: vertical; transition: all 150ms; outline: none;';
+        textarea.style.cssText = 'flex: 1; padding: 8px 12px; border: 1px solid var(--color-border-primary); border-radius: 6px; font-size: 12px; font-family: var(--font-family-mono); background-color: white; resize: vertical; transition: all 150ms; outline: none; min-height: 36px;';
         textarea.value = value;
         textarea.dataset.rowIndex = rowIndex;
         textarea.dataset.fieldName = fieldName;
 
+        // Add elements to container
+        container.appendChild(headerDisplay);
+        container.appendChild(textarea);
+        globalState.csvCellDetailPreviewer.appendChild(container);
+
         const handlePreviewerChange = () => {
             const newValue = textarea.value;
             
-            // Update global state
             if (globalState.csvData[rowIndex]) {
                 globalState.csvData[rowIndex][fieldName] = newValue;
             }
@@ -222,7 +219,6 @@ export class CSVManager {
                 globalState.editedCsvData[rowIndex][fieldName] = newValue;
             }
             
-            // Update AG-Grid
             if (this.gridApi) {
                 const rowNode = this.gridApi.getRowNode(rowIndex);
                 if (rowNode) {
@@ -241,12 +237,11 @@ export class CSVManager {
                 textarea.blur();
             } else if (e.key === 'Escape') {
                 e.preventDefault();
-                textarea.value = value; // Reset to original
+                textarea.value = value;
                 textarea.blur();
             }
         });
 
-        // Focus style
         textarea.addEventListener('focus', () => {
             textarea.style.borderColor = 'var(--color-border-focus)';
             textarea.style.boxShadow = 'var(--focus-ring)';
@@ -256,16 +251,13 @@ export class CSVManager {
             textarea.style.boxShadow = 'none';
         });
 
-        globalState.csvCellDetailPreviewer.appendChild(textarea);
-        setTimeout(() => textarea.focus(), 100); // Small delay for better UX
+        setTimeout(() => textarea.focus(), 100);
     }
 
-    // FIXED: Add method to check if grid exists and is ready
     isGridReady() {
         return this.gridInitialized && this.gridApi && !this.gridApi.isDestroyed();
     }
 
-    // FIXED: Add method to refresh grid without recreating
     refreshGrid() {
         if (this.isGridReady()) {
             console.log('[refreshGrid] Refreshing existing grid');
@@ -276,7 +268,6 @@ export class CSVManager {
         return false;
     }
 
-    // FIXED: Add cleanup method
     cleanup() {
         console.log('[cleanup] Cleaning up CSV Manager');
         if (this.gridApi && !this.gridApi.isDestroyed()) {
@@ -286,14 +277,11 @@ export class CSVManager {
         this.gridInitialized = false;
     }
 
-    // Export functionality (keeping your existing logic but with fixed API references)
     setupExportButton() {
         console.log('[setupExportButton] Setting up export functionality...');
         
-        // Find or create export button
         let exportBtn = document.getElementById('saveCSVBtn');
         if (!exportBtn) {
-            // Create export button if it doesn't exist
             const exportActions = document.querySelector('.editor-controls') || 
                                  document.querySelector('#mainExportActions');
             
@@ -308,7 +296,6 @@ export class CSVManager {
         }
 
         if (exportBtn) {
-            // Remove existing listeners
             exportBtn.replaceWith(exportBtn.cloneNode(true));
             exportBtn = document.getElementById('saveCSVBtn');
             
@@ -323,7 +310,6 @@ export class CSVManager {
 
     exportCSV() {
         try {
-            // Get current data from AG-Grid if available
             if (this.gridApi && !this.gridApi.isDestroyed()) {
                 const currentData = [];
                 this.gridApi.forEachNode(node => {
@@ -340,10 +326,8 @@ export class CSVManager {
                 return;
             }
 
-            // Generate CSV content
             const csvContent = this.generateCSVContent();
             
-            // Create and download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
@@ -358,7 +342,6 @@ export class CSVManager {
             
             console.log('[exportCSV] CSV exported successfully');
             
-            // Trigger bibliography regeneration if needed
             if (typeof generateBibliography === 'function') {
                 generateBibliography();
             }
@@ -370,19 +353,16 @@ export class CSVManager {
     }
 
     generateCSVContent() {
-        // Use Papa Parse if available, otherwise manual generation
         if (typeof Papa !== 'undefined') {
             return Papa.unparse({
                 fields: globalState.csvHeaders,
                 data: globalState.csvData
             });
         } else {
-            // Manual CSV generation
             const rows = [globalState.csvHeaders];
             globalState.csvData.forEach(entry => {
                 const row = globalState.csvHeaders.map(header => {
                     const value = entry[header] || '';
-                    // Escape quotes and wrap in quotes if contains comma or quotes
                     if (value.includes(',') || value.includes('"') || value.includes('\n')) {
                         return '"' + value.replace(/"/g, '""') + '"';
                     }
@@ -394,13 +374,10 @@ export class CSVManager {
         }
     }
 
-    // Legacy method compatibility - can be removed or kept as no-op
     setupKeyboardNavigation() {
         console.log('[setupKeyboardNavigation] AG-Grid handles navigation automatically');
-        // AG-Grid provides built-in keyboard navigation, so this can be simplified or removed
     }
 
-    // Keep these methods for compatibility but they're no longer needed with AG-Grid
     resetCellSelection() {
         console.log('[resetCellSelection] Using AG-Grid selection');
         if (globalState.csvCellDetailPreviewer) {
