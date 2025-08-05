@@ -34,7 +34,7 @@ export class ExportManager {
     <style>
         body {
             font-family: "Times New Roman", Times, serif;
-            font-size: 12pt;
+            font-size: 10pt;
             line-height: 1.5;
             margin: 1in;
         }

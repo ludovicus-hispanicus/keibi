@@ -30,7 +30,8 @@ class BibliographyManager {
                 PreviewContextMenuModule,
                 CSVNavigationModule,
                 ExportManagerModule,
-                CSVManagerModule // FIXED: Added CSV Manager import
+                CSVManagerModule,
+                WordExporterModule // ADDED: Move WordExporter here
             ] = await Promise.all([
                 import('./styles/styleManager.js'),
                 import('./ui/tabManager.js'),
@@ -38,7 +39,8 @@ class BibliographyManager {
                 import('./preview/contextMenu.js'),
                 import('./csvEditor/navigation.js'),
                 import('./rightColumn/exportManager.js'),
-                import('./csvEditor/csvManager.js') // FIXED: Added this import
+                import('./csvEditor/csvManager.js'),
+                import('./export/wordExporter.js') // ADDED: Import WordExporter in parallel
             ]);
 
             // Initialize all managers
@@ -48,10 +50,13 @@ class BibliographyManager {
             previewContextMenu = new PreviewContextMenuModule.PreviewContextMenu();
             csvNavigation = new CSVNavigationModule.CSVNavigation();
             exportManager = new ExportManagerModule.ExportManager();
-            csvManager = new CSVManagerModule.CSVManager(); // FIXED: Initialize CSV Manager
+            csvManager = new CSVManagerModule.CSVManager();
 
             // FIXED: Make csvManager globally accessible for tab switching
             globalState.csvManager = csvManager;
+
+            // Initialize Word export button
+            WordExporterModule.addWordExportButton();
 
             this.managersInitialized = true;
             console.log('All managers initialized successfully');
@@ -235,48 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // FIXED: Make app accessible globally for debugging
     window.bibliographyApp = app;
     
-    // ADDED: Manual tab switching until TabManager is fixed
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const tabId = button.dataset.tab;
-            console.log(`Switching to tab: ${tabId}`);
-            
-            // Update button styles
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            // Show/hide tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.style.display = content.id === `${tabId}-tab` ? 'block' : 'none';
-            });
-            
-            // Handle CSV tab activation
-            if (tabId === 'csv-editor' && globalState.csvManager) {
-                console.log('Activating CSV tab...');
-                
-                // Always ensure the previewer is visible when returning to CSV tab
-                const previewer = document.getElementById('csvCellDetailPreviewer');
-                if (previewer) {
-                    previewer.style.display = 'block';
-                    console.log('Made cell detail previewer visible');
-                }
-                
-                // Check if grid exists and refresh, or create new one
-                if (globalState.csvManager.isGridReady && globalState.csvManager.isGridReady()) {
-                    console.log('Grid already exists, refreshing...');
-                    globalState.csvManager.refreshGrid();
-                } else {
-                    console.log('Creating new grid...');
-                    globalState.csvManager.displayCSVTable();
-                }
-            } else if (tabId !== 'csv-editor') {
-                // Hide the previewer when not on CSV tab
-                const previewer = document.getElementById('csvCellDetailPreviewer');
-                if (previewer) {
-                    previewer.style.display = 'none';
-                }
-            }
-        });
-    });
+    // REMOVED: Manual tab switching - let TabManager handle it
+    // The tabManager.js should handle all tab switching
 });
+
