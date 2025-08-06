@@ -857,3 +857,21 @@ sup {
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
 }
+
+.proof-checkbox {
+    margin-right: 8px;
+    vertical-align: middle;
+    accent-color: #4CAF50; /* Green for checked */
+}
+
+/* Prevent checkbox from being editable in contenteditable div */
+[contenteditable] input[type="checkbox"] {
+    pointer-events: auto; /* Allow clicks */
+    user-select: none;   /* Prevent text selection */
+}
+
+/* Optional: Strike-through for checked lines */
+input.proof-checkbox:checked + span {
+    text-decoration: line-through;
+    color: gray;
+}

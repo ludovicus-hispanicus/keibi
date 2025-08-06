@@ -1,9 +1,8 @@
-// js/preview/BibliographyGenerator.js (Final simplified version)
+// js/preview/BibliographyGenerator.js (Updated with enhanced logging)
 import { globalState, updateEntryCount } from '../state/globalState.js';
 import { TextProcessor } from '../utils/textProcessor.js';
 import { TemplateProcessor } from './templateProcessor.js';
 
-// Core bibliography generation
 export class BibliographyGenerator {
     generateBibliography() {
         if (!globalState.csvData.length && !globalState.originalCsvData.length) {
@@ -22,15 +21,25 @@ export class BibliographyGenerator {
         try {
             const processedEntries = this.processEntries();
             globalState.outputDiv.innerHTML = '';
+            console.log('Generating bibliography with', processedEntries.length, 'entries');
             
             if (processedEntries.length > 0) {
                 processedEntries.forEach(processedEntry => {
                     const div = document.createElement('div');
                     div.className = 'entry py-2 border-b border-[var(--non-photo-blue)] last:border-b-0';
-                    div.innerHTML = processedEntry.html;
+                    const isChecked = globalState.proofingStates[processedEntry.originalCsvIndex] || false;
+                    const checkbox = `<input type="checkbox" class="proof-checkbox" data-entry-id="${processedEntry.originalCsvIndex}" ${isChecked ? 'checked' : ''}> `;
+                    div.innerHTML = `${checkbox}<span>${processedEntry.html}</span>`;
                     div.dataset.entryIndex = processedEntry.originalCsvIndex;
                     globalState.outputDiv.appendChild(div);
                 });
+
+                console.log('Checkboxes rendered for entries:', processedEntries.map(e => e.originalCsvIndex));
+                this.setupProofingCheckboxes();
+
+                // Add proofing summary
+                const proofedCount = Object.values(globalState.proofingStates).filter(Boolean).length;
+                globalState.outputDiv.insertAdjacentHTML('beforeend', `<p class="text-sm text-gray-500 mt-2">${proofedCount} of ${processedEntries.length} entries proofed</p>`);
             } else {
                 globalState.outputDiv.innerHTML = '<p class="text-gray-500">No entries found matching the selected criteria.</p>';
             }
@@ -44,6 +53,34 @@ export class BibliographyGenerator {
             }
             return 0;
         }
+    }
+
+    setupProofingCheckboxes() {
+        const checkboxes = globalState.outputDiv.querySelectorAll('.proof-checkbox');
+        console.log('Found', checkboxes.length, 'proof-checkbox elements');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const entryId = e.target.dataset.entryId;
+                globalState.proofingStates[entryId] = e.target.checked;
+                console.log(`Proofing state updated for entry ${entryId}: ${e.target.checked}`);
+                try {
+                    localStorage.setItem('proofingStates', JSON.stringify(globalState.proofingStates));
+                    console.log('Saved proofingStates to localStorage:', globalState.proofingStates);
+                } catch (error) {
+                    console.error('Error saving to localStorage:', error);
+                }
+                
+                // Update proofing summary
+                const processedEntries = this.processEntries();
+                const proofedCount = Object.values(globalState.proofingStates).filter(Boolean).length;
+                const summary = globalState.outputDiv.querySelector('.text-sm.text-gray-500');
+                if (summary) {
+                    summary.textContent = `${proofedCount} of ${processedEntries.length} entries proofed`;
+                } else {
+                    console.warn('Proofing summary element not found');
+                }
+            });
+        });
     }
 
     processEntries() {
@@ -135,17 +172,12 @@ export class BibliographyGenerator {
                 }
             }
 
-            // Process authors and editors
             this.processAuthorsAndEditors(entry, template, entryDataForTemplate);
-            
-            // Process other fields
             this.processOtherFields(entry, entryDataForTemplate);
 
             let formattedEntryString = TemplateProcessor.processFormatTemplate(template, entryDataForTemplate, originalCsvIndex);
             
-            // Add tags if present - Now safe since all values are strings
             const tags = (entry['Manual Tags'] || entry.Tags || entry['manual tags'] || entry.tags || '').trim();
-            
             if (tags) {
                 formattedEntryString += ` <span class="tag text-xs text-gray-500 italic">${tags.split(/[;,]/).map(tag => `#${tag.trim()}`).join(' ')}</span>`;
             }
@@ -156,7 +188,6 @@ export class BibliographyGenerator {
     }
 
     processAuthorsAndEditors(entry, template, entryDataForTemplate) {
-        // Author processing
         let authorSourceString = entry.Author || '';
         if (!authorSourceString && (
             template.toUpperCase().includes('LASTNAME') ||
@@ -190,7 +221,6 @@ export class BibliographyGenerator {
             entryDataForTemplate.NAME_INIT = entryDataForTemplate.NAME_INIT || '';
         }
 
-        // Process author lists
         const authorLastNames = [];
         const authorComplexFirstNames = [];
         const authorAllInitials = [];
@@ -211,7 +241,6 @@ export class BibliographyGenerator {
         entryDataForTemplate.LIST_NAMES = authorComplexFirstNames.join(' – ');
         entryDataForTemplate.LIST_INITIALS = authorAllInitials.join(' – ');
 
-        // Editor processing (similar to authors)
         const editorSourceString = entry.Editor || '';
         let plainEditorText = '';
         if (editorSourceString) {

@@ -1,3 +1,4 @@
+// js/state/globalState.js (Fixed with safe proofing states)
 import { DEFAULT_STYLE_TEMPLATES } from '../config/constants.js';
 
 // Global state management
@@ -26,11 +27,20 @@ class GlobalState {
         this.bibliographyOutputGlobal = null;
         this.savedSelectionRange = null;
         
-        // Style templates - NOW PROPERLY IMPORTING DEFAULT_STYLE_TEMPLATES
+        // Style templates
         this.styleTemplates = { ...DEFAULT_STYLE_TEMPLATES };
+        
+        // NEW: Proofing states with safe initialization
+        const proofingData = localStorage.getItem('proofingStates');
+        try {
+            this.proofingStates = proofingData ? JSON.parse(proofingData) : {};
+        } catch (e) {
+            console.warn('Invalid proofingStates in localStorage, resetting to {}:', e);
+            this.proofingStates = {};
+            localStorage.setItem('proofingStates', JSON.stringify(this.proofingStates));
+        }
     }
 
-    // Getters and setters for state management
     setCsvData(data) {
         this.csvData = data;
         this.editedCsvData = JSON.parse(JSON.stringify(data));
@@ -49,13 +59,10 @@ class GlobalState {
         return this.styleTemplates;
     }
 
-    // Reset to defaults
     resetStyleTemplates() {
         this.styleTemplates = { ...DEFAULT_STYLE_TEMPLATES };
     }
 }
-
-// Add this function to your globalState.js file
 
 export function updateEntryCount(count) {
     const entryCountElements = [

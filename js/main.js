@@ -1,14 +1,13 @@
-// Main initialization and coordination - FIXED VERSION
+// js/main.js (Updated with TypeError fix, Ctrl+S/Cmd+S, and proofing cleanup)
 import { globalState } from './state/globalState.js';
 
 // Import all the managers/handlers we need
 let styleManager, tabManager, fileHandler, previewContextMenu, csvNavigation, exportManager;
-let csvManager = null; // FIXED: Added csvManager reference
+let csvManager = null;
 
 // Main application class
 class BibliographyManager {
     constructor() {
-        // We'll initialize managers after DOM is ready
         this.managersInitialized = false;
     }
 
@@ -18,55 +17,10 @@ class BibliographyManager {
         this.setupEventListeners();
         this.loadInitialData();
         this.initializeUI();
-    }
-
-    async initializeManagers() {
-        try {
-            // Dynamically import all managers
-            const [
-                StyleManagerModule,
-                TabManagerModule,
-                FileHandlerModule,
-                PreviewContextMenuModule,
-                CSVNavigationModule,
-                ExportManagerModule,
-                CSVManagerModule,
-                WordExporterModule // ADDED: Move WordExporter here
-            ] = await Promise.all([
-                import('./styles/styleManager.js'),
-                import('./ui/tabManager.js'),
-                import('./ui/fileHandler.js'),
-                import('./preview/contextMenu.js'),
-                import('./csvEditor/navigation.js'),
-                import('./rightColumn/exportManager.js'),
-                import('./csvEditor/csvManager.js'),
-                import('./export/wordExporter.js') // ADDED: Import WordExporter in parallel
-            ]);
-
-            // Initialize all managers
-            styleManager = new StyleManagerModule.StyleManager();
-            tabManager = new TabManagerModule.TabManager();
-            fileHandler = new FileHandlerModule.FileHandler();
-            previewContextMenu = new PreviewContextMenuModule.PreviewContextMenu();
-            csvNavigation = new CSVNavigationModule.CSVNavigation();
-            exportManager = new ExportManagerModule.ExportManager();
-            csvManager = new CSVManagerModule.CSVManager();
-
-            // FIXED: Make csvManager globally accessible for tab switching
-            globalState.csvManager = csvManager;
-
-            // Initialize Word export button
-            WordExporterModule.addWordExportButton();
-
-            this.managersInitialized = true;
-            console.log('All managers initialized successfully');
-        } catch (error) {
-            console.error('Error initializing managers:', error);
-        }
+        this.setupKeyboardShortcuts();
     }
 
     initializeDOM() {
-        // Initialize global DOM references
         globalState.outputDiv = document.getElementById('bibliographyOutput');
         globalState.bibliographyOutputGlobal = document.getElementById('bibliographyOutput');
         globalState.entryCount = document.getElementById('entryCount');
@@ -76,35 +30,69 @@ class BibliographyManager {
         globalState.stylePreviewMainDisplay = document.getElementById('stylePreviewMainDisplay');
         globalState.csvCellDetailPreviewer = document.getElementById('csvCellDetailPreviewer');
 
-        // Validate critical elements
-        if (!globalState.outputDiv || !globalState.entryCount || !globalState.styleEditorsContainer || 
+        if (!globalState.outputDiv || !globalState.entryCount || !globalState.styleEditorsContainer ||
             !globalState.formatPreviewPanel || !globalState.stylePreviewMainDisplay || !globalState.csvCellDetailPreviewer) {
             console.error("CRITICAL: Core UI elements missing.");
             const uploadStatus = document.getElementById('uploadStatus');
             if (uploadStatus) uploadStatus.innerHTML = '<span class="status-error">Error: Core UI missing.</span>';
         }
 
-        // Setup preview area for editing
         if (globalState.bibliographyOutputGlobal) {
             globalState.bibliographyOutputGlobal.addEventListener('contextmenu', (e) => {
                 if (previewContextMenu) previewContextMenu.showContextMenu(e);
             });
-            globalState.bibliographyOutputGlobal.addEventListener('input', (e) => this.handlePreviewInputChange(e));
+            // Removed 'input' event listener to avoid TypeError
         }
 
-        // Initialize cell detail previewer
         if (globalState.csvCellDetailPreviewer) {
             globalState.csvCellDetailPreviewer.innerHTML = '<p class="text-gray-500 italic">Click a cell in the table to see its full content here.</p>';
         }
 
-        // FIXED: Add cleanup when window is unloaded
         window.addEventListener('beforeunload', () => {
             this.cleanup();
         });
     }
 
+    async initializeManagers() {
+        try {
+            const [
+                StyleManagerModule,
+                TabManagerModule,
+                FileHandlerModule,
+                PreviewContextMenuModule,
+                CSVNavigationModule,
+                ExportManagerModule,
+                CSVManagerModule,
+                WordExporterModule
+            ] = await Promise.all([
+                import('./styles/styleManager.js'),
+                import('./ui/tabManager.js'),
+                import('./ui/fileHandler.js'),
+                import('./preview/contextMenu.js'),
+                import('./csvEditor/navigation.js'),
+                import('./rightColumn/exportManager.js'),
+                import('./csvEditor/csvManager.js'),
+                import('./export/wordExporter.js')
+            ]);
+
+            styleManager = new StyleManagerModule.StyleManager();
+            tabManager = new TabManagerModule.TabManager();
+            fileHandler = new FileHandlerModule.FileHandler();
+            previewContextMenu = new PreviewContextMenuModule.PreviewContextMenu();
+            csvNavigation = new CSVNavigationModule.CSVNavigation();
+            exportManager = new ExportManagerModule.ExportManager();
+            csvManager = new CSVManagerModule.CSVManager();
+            globalState.csvManager = csvManager;
+
+            WordExporterModule.addWordExportButton();
+            this.managersInitialized = true;
+            console.log('All managers initialized successfully');
+        } catch (error) {
+            console.error('Error initializing managers:', error);
+        }
+    }
+
     setupExportDropdowns() {
-        // Setup for both preview tab and CSV tab dropdowns
         const dropdownConfigs = [
             {
                 triggerBtn: '#exportDropdownBtn',
@@ -131,29 +119,22 @@ class BibliographyManager {
 
             if (!triggerBtn || !menu) return;
 
-            // Toggle dropdown
             triggerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                
-                // Close other dropdowns
                 document.querySelectorAll('.export-dropdown-menu').forEach(otherMenu => {
                     if (otherMenu !== menu) {
                         otherMenu.style.display = 'none';
                     }
                 });
-                
-                // Toggle this dropdown
                 menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
             });
 
-            // Export handlers
             if (htmlBtn) {
                 htmlBtn.addEventListener('click', () => {
                     menu.style.display = 'none';
                     if (exportManager) exportManager.exportBibliographyAsHTML();
                 });
             }
-
             if (wordBtn) {
                 wordBtn.addEventListener('click', async () => {
                     menu.style.display = 'none';
@@ -162,7 +143,6 @@ class BibliographyManager {
                     await exporter.exportBibliographyAsWord();
                 });
             }
-
             if (csvBtn) {
                 csvBtn.addEventListener('click', () => {
                     menu.style.display = 'none';
@@ -171,7 +151,6 @@ class BibliographyManager {
             }
         });
 
-        // Close dropdowns when clicking outside
         document.addEventListener('click', () => {
             document.querySelectorAll('.export-dropdown-menu').forEach(menu => {
                 menu.style.display = 'none';
@@ -179,21 +158,7 @@ class BibliographyManager {
         });
     }
 
-    updateEntryCount(count) {
-        const entryCountElements = [
-            document.getElementById('entryCount'),
-            document.getElementById('csvEntryCount')
-        ];
-        
-        entryCountElements.forEach(element => {
-            if (element) {
-                element.textContent = count > 0 ? `${count} entries` : '';
-            }
-        });
-    }
-
     setupEventListeners() {
-        // Sort option listener
         const sortOption = document.getElementById('sortOption');
         if (sortOption) {
             sortOption.addEventListener('change', () => {
@@ -203,36 +168,109 @@ class BibliographyManager {
             });
         }
 
-        // Setup export dropdowns for both tabs
         this.setupExportDropdowns();
 
-        // Save buttons - handle both preview and CSV tab buttons
         const saveButtons = document.querySelectorAll('#saveFileBtn, #saveFileBtn2');
         saveButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (exportManager) exportManager.saveCSVChanges();
+            btn.addEventListener('click', async () => {
+                console.log('💾 Save button clicked - attempting to save to file system');
+                
+                try {
+                    if (globalState.csvManager && globalState.csvManager.gridApi && !globalState.csvManager.gridApi.isDestroyed()) {
+                        console.log('📊 Syncing grid data before save...');
+                        const currentData = [];
+                        globalState.csvManager.gridApi.forEachNode(node => {
+                            if (node.data) {
+                                currentData.push(node.data);
+                            }
+                        });
+                        globalState.csvData = [...currentData];
+                        globalState.editedCsvData = [...currentData];
+                    }
+
+                    if (window.saveToOriginalFile && typeof window.saveToOriginalFile === 'function') {
+                        console.log('💾 Using File System API to save...');
+                        const saved = await window.saveToOriginalFile();
+                        
+                        if (saved) {
+                            console.log('✅ File saved successfully to disk!');
+                            globalState.originalCsvData = JSON.parse(JSON.stringify(globalState.editedCsvData));
+                            const module = await import('./preview/BibliographyGenerator.js');
+                            const generator = new module.BibliographyGenerator();
+                            generator.generateBibliography();
+                        } else {
+                            console.log('⚠️ Save was cancelled by user');
+                        }
+                    } else {
+                        console.log('⚠️ File System API not available, using download fallback');
+                        if (exportManager && exportManager.exportCSV) {
+                            exportManager.exportCSV();
+                            alert('File System API not supported. File has been downloaded instead.');
+                        } else {
+                            alert('Save functionality not available');
+                        }
+                    }
+                } catch (error) {
+                    console.error('💥 Error saving file:', error);
+                    alert('Error saving file: ' + error.message);
+                }
             });
         });
 
-        // Style management buttons
         const saveStylesBtn = document.getElementById('saveStylesBtn');
         if (saveStylesBtn) {
             saveStylesBtn.addEventListener('click', () => this.handleSaveAllStyles());
         }
-
         const resetStylesBtn = document.getElementById('resetStylesBtn');
         if (resetStylesBtn) {
             resetStylesBtn.addEventListener('click', () => {
                 if (styleManager) styleManager.resetStyles();
             });
         }
-
         const addCustomStyleBtn = document.getElementById('addCustomStyleBtn');
         if (addCustomStyleBtn) {
             addCustomStyleBtn.addEventListener('click', () => this.handleAddCustomStyle());
         }
     }
 
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', async (event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                event.preventDefault();
+                console.log('Ctrl+S/Cmd+S pressed - attempting to save');
+                
+                try {
+                    if (globalState.csvManager && globalState.csvManager.gridApi && !globalState.csvManager.gridApi.isDestroyed()) {
+                        console.log('📊 Syncing grid data before save...');
+                        globalState.csvManager.gridApi.stopEditing();
+                        const currentData = [];
+                        globalState.csvManager.gridApi.forEachNode(node => {
+                            if (node.data) {
+                                currentData.push(node.data);
+                            }
+                        });
+                        globalState.csvData = [...currentData];
+                        globalState.editedCsvData = [...currentData];
+                    }
+
+                    if (window.saveToOriginalFile) {
+                        const saved = await window.saveToOriginalFile();
+                        if (saved) {
+                            console.log('✅ File saved via keyboard shortcut');
+                        } else {
+                            console.log('⚠️ Save cancelled by user');
+                        }
+                    } else {
+                        console.warn('Save function not available');
+                        alert('Save functionality not available');
+                    }
+                } catch (error) {
+                    console.error('Error saving via shortcut:', error);
+                    alert('Error saving: ' + error.message);
+                }
+            }
+        });
+    }
 
     loadInitialData() {
         if (styleManager) {
@@ -241,13 +279,10 @@ class BibliographyManager {
     }
 
     initializeUI() {
-        // Initialize navigation enhancements
         if (csvNavigation) {
             csvNavigation.enhanceCellNavigation();
             csvNavigation.addColumnHoverEffect();
         }
-
-        // Initialize default tabs
         if (tabManager) {
             tabManager.initializeDefaultTabs();
         }
@@ -269,9 +304,9 @@ class BibliographyManager {
         const nameInput = document.getElementById('customStyleName');
         const formatInput = document.getElementById('customStyleFormat');
         
-        if (!nameInput || !formatInput) { 
-            console.error("Custom style input fields not found."); 
-            return; 
+        if (!nameInput || !formatInput) {
+            console.error("Custom style input fields not found.");
+            return;
         }
         
         const newNameRaw = nameInput.value.trim();
@@ -280,16 +315,6 @@ class BibliographyManager {
         if (styleManager && styleManager.addCustomStyle(newNameRaw, newFormat)) {
             nameInput.value = '';
             formatInput.value = '';
-        }
-    }
-
-    async handlePreviewInputChange(event) {
-        try {
-            const module = await import('./preview/BibliographyGenerator.js');
-            const generator = new module.BibliographyGenerator();
-            generator.handlePreviewInputChange(event);
-        } catch (error) {
-            console.error('Error handling preview input change:', error);
         }
     }
 
@@ -304,29 +329,21 @@ class BibliographyManager {
         }
     }
 
-    // FIXED: Add cleanup method
     cleanup() {
         console.log('Cleaning up Bibliography Manager...');
         if (csvManager) {
             csvManager.cleanup();
         }
+        localStorage.setItem('proofingStates', JSON.stringify(globalState.proofingStates));
     }
 }
-
-// FIXED: Make app globally accessible for debugging
-let app;
 
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Bibliography Manager initializing...');
-    app = new BibliographyManager();
+    const app = new BibliographyManager();
     await app.init();
     console.log('Bibliography Manager initialized successfully');
     
-    // FIXED: Make app accessible globally for debugging
     window.bibliographyApp = app;
-    
-    // REMOVED: Manual tab switching - let TabManager handle it
-    // The tabManager.js should handle all tab switching
 });
-
