@@ -65,7 +65,6 @@ export class TabManager {
         }
     }
 
-    // FIXED: Completely rewritten to prevent duplication
     async handleCSVEditorTabActivation() {
         console.log('[handleCSVEditorTabActivation] CSV Editor tab activated');
         
@@ -80,39 +79,49 @@ export class TabManager {
                 return;
             }
 
-            // FIXED: Use the csvManager from globalState instead of creating new one
+            // Use the csvManager from globalState
             if (globalState.csvManager) {
-                // Check if grid is already ready and just needs refresh
+                // Check if grid is already ready - if so, just restore selection
                 if (globalState.csvManager.isGridReady && globalState.csvManager.isGridReady()) {
-                    console.log('[handleCSVEditorTabActivation] Grid already exists and is ready, refreshing data...');
-                    if (globalState.csvManager.refreshGrid && globalState.csvManager.refreshGrid()) {
-                        console.log('[handleCSVEditorTabActivation] Successfully refreshed existing grid');
-                        return; // Successfully refreshed, no need to recreate
+                    console.log('[handleCSVEditorTabActivation] Grid already exists, restoring selection...');
+                    
+                    // Make sure previewer is visible
+                    if (globalState.csvCellDetailPreviewer) {
+                        globalState.csvCellDetailPreviewer.style.display = 'block';
                     }
+                    
+                    // Attempt to restore selection
+                    setTimeout(() => {
+                        if (globalState.csvManager.restoreSelection && globalState.csvManager.restoreSelection()) {
+                            console.log('[handleCSVEditorTabActivation] Selection restored');
+                        } else {
+                            // Show default message if no selection to restore
+                            if (globalState.csvCellDetailPreviewer) {
+                                globalState.csvCellDetailPreviewer.innerHTML = '<span style="color: var(--color-text-secondary); font-style: italic;">Click a cell in the table to see its full content here.</span>';
+                            }
+                        }
+                    }, 100);
+                    
+                    return; // CRITICAL: Exit here - don't recreate the grid!
                 }
                 
-                // If refresh failed or grid doesn't exist, display table
-                console.log('[handleCSVEditorTabActivation] Displaying CSV table...');
+                // Only create/display table if grid doesn't exist
+                console.log('[handleCSVEditorTabActivation] Grid not ready, creating table...');
                 globalState.csvManager.displayCSVTable();
                 this.csvTabInitialized = true;
                 
             } else {
-                // FIXED: If csvManager doesn't exist in globalState, something is wrong
-                console.error('[handleCSVEditorTabActivation] csvManager not found in globalState!');
-                console.log('[handleCSVEditorTabActivation] Available in globalState:', Object.keys(globalState));
-                
-                // Fallback: Try to create one
-                console.log('[handleCSVEditorTabActivation] Creating fallback CSV manager...');
+                // Fallback: Create new csvManager if it doesn't exist
+                console.error('[handleCSVEditorTabActivation] csvManager not found, creating fallback...');
                 const CSVManagerModule = await import('../csvEditor/csvManager.js');
                 globalState.csvManager = new CSVManagerModule.CSVManager();
                 globalState.csvManager.displayCSVTable();
                 this.csvTabInitialized = true;
             }
             
-            // FIXED: Ensure the cell detail previewer is visible
+            // Ensure the cell detail previewer is visible
             if (globalState.csvCellDetailPreviewer) {
                 globalState.csvCellDetailPreviewer.style.display = 'block';
-                console.log('[handleCSVEditorTabActivation] Made cell detail previewer visible');
             }
             
         } catch (error) {

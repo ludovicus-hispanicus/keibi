@@ -55,4 +55,19 @@ class GlobalState {
     }
 }
 
+// Add this function to your globalState.js file
+
+export function updateEntryCount(count) {
+    const entryCountElements = [
+        document.getElementById('entryCount'),
+        document.getElementById('csvEntryCount')
+    ];
+    
+    entryCountElements.forEach(element => {
+        if (element) {
+            element.textContent = count > 0 ? `${count} entries` : '';
+        }
+    });
+}
+
 export const globalState = new GlobalState();

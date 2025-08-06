@@ -84,20 +84,10 @@ async function openCSVFile() {
             fileNameDisplay.innerHTML = `
                 <div class="flex items-center">
                     <span class="text-green-600">Opened: ${file.name}</span>
-                    <div class="ml-auto">
-                        <button id="quickSaveBtn" class="btn-action padding-condensed text-xs px-2 py-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                            </svg>
-                            Save
-                        </button>
-                    </div>
                 </div>
             `;
-            
-            // Add event listener to the quick save button
-            document.getElementById('quickSaveBtn')?.addEventListener('click', saveToOriginalFile);
         }
+
         
         // Parse CSV and update application state
         await processCSVContent(contents);
@@ -153,20 +143,10 @@ async function saveToOriginalFile() {
             statusElement.innerHTML = `
                 <div class="flex items-center">
                     <span class="text-green-600">Saved: ${filename}</span>
-                    <div class="ml-auto">
-                        <button id="quickSaveBtn" class="btn-action padding-condensed text-xs px-2 py-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                            </svg>
-                            Save
-                        </button>
-                    </div>
                 </div>
             `;
-            
-            // Add event listener to the quick save button
-            document.getElementById('quickSaveBtn')?.addEventListener('click', saveToOriginalFile);
         }
+
         
         alert('File saved successfully!');
         
@@ -225,19 +205,8 @@ async function saveCSVAs() {
             fileNameDisplay.innerHTML = `
                 <div class="flex items-center">
                     <span class="text-green-600">Saved: ${file.name}</span>
-                    <div class="ml-auto">
-                        <button id="quickSaveBtn" class="btn-action padding-condensed text-xs px-2 py-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                            </svg>
-                            Save
-                        </button>
-                    </div>
                 </div>
             `;
-            
-            // Add event listener to the quick save button
-            document.getElementById('quickSaveBtn')?.addEventListener('click', saveToOriginalFile);
         }
         
         alert('File saved successfully!');

@@ -93,6 +93,59 @@ body {
     font-size: var(--font-size-xs);
 }
 
+/* Export Dropdown Styling - Add this to your main.css */
+.export-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.export-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    min-width: 150px;
+    margin-top: 4px;
+}
+
+/* More specific selector to override any existing styles */
+.export-dropdown-menu .dropdown-item {
+    width: 100% !important;
+    text-align: left !important;
+    padding: 8px 12px !important;
+    border: none !important;
+    background: none !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    color: var(--color-text-primary) !important;
+    border-bottom: 1px solid var(--color-border-primary) !important;
+    transition: background-color var(--transition-fast) !important;
+    display: block !important;
+}
+
+.export-dropdown-menu .dropdown-item:last-child {
+    border-bottom: none !important;
+}
+
+/* Hover effect with high specificity */
+.export-dropdown-menu .dropdown-item:hover,
+.export-dropdown-menu button.dropdown-item:hover {
+    background-color: var(--color-bg-secondary) !important;
+    color: var(--color-text-accent) !important;
+}
+
+/* Focus state */
+.export-dropdown-menu .dropdown-item:focus {
+    background-color: var(--color-bg-secondary) !important;
+    color: var(--color-text-accent) !important;
+    outline: none !important;
+}
+
 /* Form elements */
 input[type="text"], 
 input[type="file"], 

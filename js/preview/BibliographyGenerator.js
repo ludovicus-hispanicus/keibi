@@ -1,5 +1,5 @@
 // js/preview/BibliographyGenerator.js (Final simplified version)
-import { globalState } from '../state/globalState.js';
+import { globalState, updateEntryCount } from '../state/globalState.js';
 import { TextProcessor } from '../utils/textProcessor.js';
 import { TemplateProcessor } from './templateProcessor.js';
 
@@ -10,9 +10,7 @@ export class BibliographyGenerator {
             if (globalState.outputDiv) {
                 globalState.outputDiv.innerHTML = '<p class="text-gray-500">No CSV data loaded.</p>';
             }
-            if (globalState.entryCount) {
-                globalState.entryCount.textContent = 'Total entries: 0';
-            }
+            updateEntryCount(0);
             return 0;
         }
 
@@ -37,7 +35,7 @@ export class BibliographyGenerator {
                 globalState.outputDiv.innerHTML = '<p class="text-gray-500">No entries found matching the selected criteria.</p>';
             }
             
-            globalState.entryCount.textContent = `Total entries: ${processedEntries.length}`;
+            updateEntryCount(processedEntries.length);
             return processedEntries.length;
         } catch (error) {
             console.error('Error generating bibliography:', error);

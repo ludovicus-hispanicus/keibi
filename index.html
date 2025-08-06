@@ -134,7 +134,28 @@
                     <div class="flex items-center space-x-4">
                         <div id="mainExportActions" class="export-actions-header">
                             <button id="saveFileBtn" type="button" class="btn-action padding-condensed">Save</button>
-                            <button id="exportHTMLBtn" type="button" class="btn-action padding-condensed">Export as HTML</button>
+                            
+                            <!-- Export Dropdown -->
+                            <div class="export-dropdown" style="position: relative; display: inline-block;">
+                                <button id="exportDropdownBtn" type="button" class="btn-action padding-condensed" style="display: flex; align-items: center; gap: 4px;">
+                                    Export
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6,9 12,15 18,9"></polyline>
+                                    </svg>
+                                </button>
+                                
+                                <div id="exportDropdownMenu" class="export-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid var(--color-border-primary); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; margin-top: 4px;">
+                                    <button id="exportHTMLBtn" type="button" class="dropdown-item" style="width: 100%; text-align: left; padding: 8px 12px; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border-primary);">
+                                        Export as HTML
+                                    </button>
+                                    <button id="exportWordBtn" type="button" class="dropdown-item" style="width: 100%; text-align: left; padding: 8px 12px; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border-primary);">
+                                        Export as Word
+                                    </button>
+                                    <button id="exportCSVBtn" type="button" class="dropdown-item" style="width: 100%; text-align: left; padding: 8px 12px; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--color-text-primary);">
+                                        Export as CSV
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div id="entryCount" class="text-sm" style="color: var(--color-text-secondary);"></div>
                     </div>
@@ -147,8 +168,34 @@
             <div class="tab-content" id="csv-editor-tab" style="display: none;">
                 <div class="output-header">
                     <h2>CSV Data Editor</h2>
-                    <div class="editor-controls">
-                        <button id="saveCSVBtn" type="button" class="btn-action padding-condensed">Save CSV</button>
+                    <div class="flex items-center space-x-4">
+                        <!-- Exact same export actions as preview tab -->
+                        <div id="csvExportActions" class="export-actions-header">
+                            <button id="saveFileBtn2" type="button" class="btn-action padding-condensed">Save</button>
+                            
+                            <!-- Export Dropdown -->
+                            <div class="export-dropdown" style="position: relative; display: inline-block;">
+                                <button id="exportDropdownBtn2" type="button" class="btn-action padding-condensed" style="display: flex; align-items: center; gap: 4px;">
+                                    Export
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6,9 12,15 18,9"></polyline>
+                                    </svg>
+                                </button>
+                                
+                                <div id="exportDropdownMenu2" class="export-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid var(--color-border-primary); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; margin-top: 4px;">
+                                    <button id="exportHTMLBtn2" type="button" class="dropdown-item" style="width: 100%; text-align: left; padding: 8px 12px; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border-primary);">
+                                        Export as HTML
+                                    </button>
+                                    <button id="exportWordBtn2" type="button" class="dropdown-item" style="width: 100%; text-align: left; padding: 8px 12px; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border-primary);">
+                                        Export as Word
+                                    </button>
+                                    <button id="exportCSVBtn2" type="button" class="dropdown-item" style="width: 100%; text-align: left; padding: 8px 12px; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--color-text-primary);">
+                                        Export as CSV
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="csvEntryCount" class="text-sm" style="color: var(--color-text-secondary);"></div>
                     </div>
                 </div>
                 
@@ -166,9 +213,6 @@
                     </div>
                     
                     <div id="csvGrid" class="ag-theme-alpine" style="height: calc(100vh - 300px); width: 100%;"></div>
-
-
-                    
                 </div>
             </div>
 

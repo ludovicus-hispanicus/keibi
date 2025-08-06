@@ -243,6 +243,15 @@ export class CSVManager {
         this.setupExportButton();
 
         console.log('[displayCSVTable] AG-Grid initialized successfully');
+
+        setTimeout(() => {
+            if (!this.restoreSelection()) {
+                // If no selection to restore, show default message
+                if (globalState.csvCellDetailPreviewer) {
+                    globalState.csvCellDetailPreviewer.innerHTML = '<span style="color: var(--color-text-secondary); font-style: italic;">Click a cell in the table to see its full content here.</span>';
+                }
+            }
+        }, 200);
     }
 
     handleAgGridCellEdit(event) {
@@ -410,6 +419,10 @@ export class CSVManager {
         });
 
         console.log(`Preview field set up for live sync: ${fieldName} = "${value}"`);
+
+        setTimeout(() => {
+            this.saveCurrentSelection();
+        }, 50);
     }
 
     // ADDED: Sync cell changes to preview field (cell → preview)
@@ -638,6 +651,52 @@ export class CSVManager {
     clearSelection() {
         if (this.gridApi && !this.gridApi.isDestroyed()) {
             this.gridApi.deselectAll();
+        }
+    }
+
+    saveCurrentSelection() {
+        if (this.currentPreviewField) {
+            globalState.lastCSVSelection = {
+                rowIndex: parseInt(this.currentPreviewField.dataset.rowIndex),
+                fieldName: this.currentPreviewField.dataset.fieldName,
+                value: this.currentPreviewField.value
+            };
+            console.log('Saved CSV selection:', globalState.lastCSVSelection);
+        } else {
+            console.log('No current preview field to save');
+        }
+    }
+
+    restoreSelection() {
+        if (globalState.lastCSVSelection && this.isGridReady()) {
+            const { rowIndex, fieldName, value } = globalState.lastCSVSelection;
+            
+            console.log('Restoring CSV selection:', globalState.lastCSVSelection);
+            
+            // Get current data to ensure we have the latest value
+            const currentValue = globalState.csvData[rowIndex] ? 
+                globalState.csvData[rowIndex][fieldName] || value : value;
+            
+            // Restore the previewer with the last selected cell
+            this.showAgGridCellInPreviewer(rowIndex, fieldName, currentValue);
+            
+            // Optional: Highlight the cell in the grid
+            setTimeout(() => {
+                if (this.gridApi && !this.gridApi.isDestroyed()) {
+                    const rowNode = this.gridApi.getRowNode(rowIndex);
+                    if (rowNode) {
+                        this.gridApi.setFocusedCell(rowIndex, fieldName);
+                        rowNode.setSelected(true);
+                        console.log('Grid cell highlighted and selected');
+                    }
+                }
+            }, 100);
+            
+            console.log('Restored CSV selection successfully');
+            return true;
+        } else {
+            console.log('No previous selection to restore or grid not ready');
+            return false;
         }
     }
 }

@@ -103,6 +103,95 @@ class BibliographyManager {
         });
     }
 
+    setupExportDropdowns() {
+        // Setup for both preview tab and CSV tab dropdowns
+        const dropdownConfigs = [
+            {
+                triggerBtn: '#exportDropdownBtn',
+                menu: '#exportDropdownMenu',
+                htmlBtn: '#exportHTMLBtn',
+                wordBtn: '#exportWordBtn',
+                csvBtn: '#exportCSVBtn'
+            },
+            {
+                triggerBtn: '#exportDropdownBtn2',
+                menu: '#exportDropdownMenu2',
+                htmlBtn: '#exportHTMLBtn2',
+                wordBtn: '#exportWordBtn2',
+                csvBtn: '#exportCSVBtn2'
+            }
+        ];
+
+        dropdownConfigs.forEach(config => {
+            const triggerBtn = document.querySelector(config.triggerBtn);
+            const menu = document.querySelector(config.menu);
+            const htmlBtn = document.querySelector(config.htmlBtn);
+            const wordBtn = document.querySelector(config.wordBtn);
+            const csvBtn = document.querySelector(config.csvBtn);
+
+            if (!triggerBtn || !menu) return;
+
+            // Toggle dropdown
+            triggerBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Close other dropdowns
+                document.querySelectorAll('.export-dropdown-menu').forEach(otherMenu => {
+                    if (otherMenu !== menu) {
+                        otherMenu.style.display = 'none';
+                    }
+                });
+                
+                // Toggle this dropdown
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Export handlers
+            if (htmlBtn) {
+                htmlBtn.addEventListener('click', () => {
+                    menu.style.display = 'none';
+                    if (exportManager) exportManager.exportBibliographyAsHTML();
+                });
+            }
+
+            if (wordBtn) {
+                wordBtn.addEventListener('click', async () => {
+                    menu.style.display = 'none';
+                    const { WordExporter } = await import('./export/wordExporter.js');
+                    const exporter = new WordExporter();
+                    await exporter.exportBibliographyAsWord();
+                });
+            }
+
+            if (csvBtn) {
+                csvBtn.addEventListener('click', () => {
+                    menu.style.display = 'none';
+                    if (exportManager) exportManager.exportCSV();
+                });
+            }
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.export-dropdown-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+        });
+    }
+
+    updateEntryCount(count) {
+        const entryCountElements = [
+            document.getElementById('entryCount'),
+            document.getElementById('csvEntryCount')
+        ];
+        
+        entryCountElements.forEach(element => {
+            if (element) {
+                element.textContent = count > 0 ? `${count} entries` : '';
+            }
+        });
+    }
+
     setupEventListeners() {
         // Sort option listener
         const sortOption = document.getElementById('sortOption');
@@ -114,20 +203,16 @@ class BibliographyManager {
             });
         }
 
-        // Export buttons
-        const exportHTMLBtn = document.getElementById('exportHTMLBtn');
-        if (exportHTMLBtn) {
-            exportHTMLBtn.addEventListener('click', () => {
-                if (exportManager) exportManager.exportBibliographyAsHTML();
-            });
-        }
+        // Setup export dropdowns for both tabs
+        this.setupExportDropdowns();
 
-        const saveCSVBtn = document.getElementById('saveCSVBtn');
-        if (saveCSVBtn) {
-            saveCSVBtn.addEventListener('click', () => {
+        // Save buttons - handle both preview and CSV tab buttons
+        const saveButtons = document.querySelectorAll('#saveFileBtn, #saveFileBtn2');
+        saveButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
                 if (exportManager) exportManager.saveCSVChanges();
             });
-        }
+        });
 
         // Style management buttons
         const saveStylesBtn = document.getElementById('saveStylesBtn');
@@ -147,6 +232,7 @@ class BibliographyManager {
             addCustomStyleBtn.addEventListener('click', () => this.handleAddCustomStyle());
         }
     }
+
 
     loadInitialData() {
         if (styleManager) {

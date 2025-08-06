@@ -137,7 +137,6 @@ export class WordExporter {
             AlignmentType: !!AlignmentType
         });
         
-        // FIXED: Simplified document creation for better compatibility
         const doc = new Document({
             sections: [
                 {
@@ -183,70 +182,84 @@ export class WordExporter {
                 line: 240, // 12pt line spacing
                 after: 220 // 11pt after paragraph
             }
-            // REMOVED: hanging indent since we're not using numbers
         });
     }
 
     parseHTMLToTextRuns(html, entryNumber) {
-        // Destructure from this.docx instead of window.docx
         const { TextRun } = this.docx;
         const textRuns = [];
-        
-        // REMOVED: Don't add entry number - just process the content as separate paragraphs
         
         // Create a temporary element to parse HTML
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
         
-        // Process the content recursively
-        this.processNodeSimple(tempDiv, textRuns);
+        // Process the content recursively, maintaining formatting context
+        this.processNodeWithFormatting(tempDiv, textRuns, {
+            bold: false,
+            italic: false,
+            superscript: false
+        });
         
         return textRuns;
     }
 
-    processNodeSimple(node, textRuns) {
-        // Simplified node processing to avoid complex nested formatting
+    processNodeWithFormatting(node, textRuns, currentFormatting) {
         const { TextRun } = this.docx;
         
-        // Get all text content and check for formatting
-        const walker = document.createTreeWalker(
-            node,
-            NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-            null,
-            false
-        );
-        
-        let currentNode;
-        while (currentNode = walker.nextNode()) {
-            if (currentNode.nodeType === Node.TEXT_NODE) {
-                const text = currentNode.textContent;
-                if (text.trim()) {
-                    // Check parent elements for formatting
-                    let isBold = false;
-                    let isItalic = false;
-                    
-                    let parent = currentNode.parentElement;
-                    while (parent && parent !== node) {
-                        const tagName = parent.tagName.toLowerCase();
-                        if (tagName === 'strong' || tagName === 'b') {
-                            isBold = true;
-                        }
-                        if (tagName === 'em' || tagName === 'i') {
-                            isItalic = true;
-                        }
-                        parent = parent.parentElement;
-                    }
-                    
+        // Process each child node
+        for (const child of node.childNodes) {
+            if (child.nodeType === Node.TEXT_NODE) {
+                // Handle text node - create TextRun with current formatting
+                const text = child.textContent;
+                if (text.trim()) { // Only add non-empty text
                     textRuns.push(new TextRun({
                         text: text,
                         font: "Times New Roman",
                         size: 20, // 10pt
-                        bold: isBold,
-                        italics: isItalic
+                        bold: currentFormatting.bold,
+                        italics: currentFormatting.italic,
+                        superScript: currentFormatting.superscript
                     }));
                 }
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                // Handle element node - determine new formatting context
+                const newFormatting = this.getFormattingFromElement(child, currentFormatting);
+                
+                // Recursively process this element's children with the new formatting
+                this.processNodeWithFormatting(child, textRuns, newFormatting);
             }
         }
+    }
+
+    getFormattingFromElement(element, parentFormatting) {
+        // Start with parent formatting
+        const formatting = { ...parentFormatting };
+        
+        const tagName = element.tagName.toLowerCase();
+        const className = element.className || '';
+        
+        // Check for bold formatting
+        if (tagName === 'strong' || 
+            tagName === 'b' || 
+            className.includes('font-bold') ||
+            className.includes('bold')) {
+            formatting.bold = true;
+        }
+        
+        // Check for italic formatting
+        if (tagName === 'em' || 
+            tagName === 'i' || 
+            className.includes('italic')) {
+            formatting.italic = true;
+        }
+        
+        // Check for superscript formatting
+        if (tagName === 'sup' || 
+            className.includes('superscript')) {
+            formatting.superscript = true;
+        }
+        
+        return formatting;
     }
 
     saveWordFile(blob) {
@@ -275,39 +288,47 @@ export class WordExporter {
 
 // Integration function to add to your existing export manager
 export function addWordExportButton() {
-    const exportActions = document.querySelector('#mainExportActions');
-    if (!exportActions) {
-        console.error('Export actions container not found');
-        return;
-    }
+    // Add to both preview tab and CSV tab export action containers
+    const exportContainers = [
+        document.querySelector('#mainExportActions'),
+        document.querySelector('#csvExportActions')
+    ];
     
-    // Check if button already exists
-    if (document.getElementById('exportWordBtn')) {
-        return;
-    }
-    
-    const wordExportBtn = document.createElement('button');
-    wordExportBtn.id = 'exportWordBtn';
-    wordExportBtn.type = 'button';
-    wordExportBtn.className = 'btn-action padding-condensed';
-    wordExportBtn.textContent = 'Export as Word';
-    
-    // FIXED: Only handle Word export, don't interfere with HTML export
-    wordExportBtn.addEventListener('click', async () => {
-        const exporter = new WordExporter();
-        await exporter.exportBibliographyAsWord();
+    exportContainers.forEach((exportActions, index) => {
+        if (!exportActions) {
+            console.error(`Export actions container ${index + 1} not found`);
+            return;
+        }
+        
+        // Create unique ID for each button
+        const buttonId = index === 0 ? 'exportWordBtn' : 'exportWordBtn2';
+        
+        // Check if button already exists
+        if (document.getElementById(buttonId)) {
+            return;
+        }
+        
+        const wordExportBtn = document.createElement('button');
+        wordExportBtn.id = buttonId;
+        wordExportBtn.type = 'button';
+        wordExportBtn.className = 'btn-action padding-condensed';
+        wordExportBtn.textContent = 'Export as Word';
+        
+        wordExportBtn.addEventListener('click', async () => {
+            const exporter = new WordExporter();
+            await exporter.exportBibliographyAsWord();
+        });
+        
+        // Insert after the HTML export button
+        const htmlBtn = exportActions.querySelector('#exportHTMLBtn');
+        if (htmlBtn) {
+            htmlBtn.parentNode.insertBefore(wordExportBtn, htmlBtn.nextSibling);
+        } else {
+            exportActions.appendChild(wordExportBtn);
+        }
     });
     
-    // Insert after the HTML export button
-    const htmlBtn = document.getElementById('exportHTMLBtn');
-    if (htmlBtn) {
-        htmlBtn.parentNode.insertBefore(wordExportBtn, htmlBtn.nextSibling);
-        // REMOVED: Don't override the HTML button - let ExportManager handle it
-    } else {
-        exportActions.appendChild(wordExportBtn);
-    }
-    
-    console.log('[WordExporter] Word export button added');
+    console.log('[WordExporter] Word export buttons added to both tabs');
 }
 
 // Auto-initialize when DOM is ready
