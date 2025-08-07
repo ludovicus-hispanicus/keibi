@@ -1,4 +1,4 @@
-// js/file-system.js (Fixed Proofed column and added logging)
+// js/file-system.js (Production-ready with minimal logs)
 import { CSVParser } from './js/utils/csvParser.js';
 import { BibliographyGenerator } from './js/preview/BibliographyGenerator.js';
 import { globalState } from './js/state/globalState.js';
@@ -14,7 +14,6 @@ function isFSAPISupported() {
 // Initialize the file system integration
 function initFileSystemIntegration() {
     const isSupported = isFSAPISupported();
-    console.log("File System API supported:", isSupported);
     
     const legacyFileInput = document.getElementById('legacyFileInput');
     const fsApiButtons = document.getElementById('fsApiButtons');
@@ -77,7 +76,6 @@ async function openCSVFile() {
         // Reset proofing states when loading a new CSV
         globalState.proofingStates = {};
         localStorage.setItem('proofingStates', JSON.stringify({}));
-        console.log('Proofing states reset for new CSV');
         
         await processCSVContent(contents);
         
@@ -87,10 +85,7 @@ async function openCSVFile() {
         
         if (error.name === 'TypeError' && !window.showOpenFilePicker) {
             alert('Your browser does not support direct file access. Please use Chrome, Edge, or another modern browser.');
-        } else if (error.name === 'AbortError') {
-            console.log("File picker cancelled by user");
-            return false;
-        } else {
+        } else if (error.name !== 'AbortError') {
             alert('Error opening file: ' + error.message);
         }
         
@@ -119,16 +114,13 @@ function validateCSVContent(csvContent, headers) {
 async function saveToOriginalFile() {
     try {
         if (!currentFileHandle) {
-            console.log("No file handle, redirecting to Save As");
             return await saveCSVAs();
         }
         
         const file = await currentFileHandle.getFile();
-        console.log("💾 Saving to original file:", file);
         
         // Sync from grid if it exists
         if (globalState.csvManager && globalState.csvManager.gridApi && !globalState.csvManager.gridApi.isDestroyed()) {
-            console.log("📊 Syncing current grid data before save...");
             globalState.csvManager.gridApi.stopEditing();
             const currentData = [];
             globalState.csvManager.gridApi.forEachNode(node => {
@@ -137,31 +129,26 @@ async function saveToOriginalFile() {
                 }
             });
             globalState.csvData = [...currentData];
-            globalState.editedCsvData = JSON.parse(JSON.stringify(currentData)); // Deep copy
+            globalState.editedCsvData = JSON.parse(JSON.stringify(currentData));
         }
         
         // Add Proofed column to editedCsvData
         globalState.editedCsvData.forEach((row, index) => {
             row.Proofed = globalState.proofingStates[index] ? 'true' : 'false';
-            console.log(`Set Proofed for row ${index}: ${row.Proofed}`);
         });
         
         // Ensure Proofed is in headers
         if (!globalState.csvHeaders.includes('Proofed')) {
-            globalState.csvHeaders.push('Proofed');
-            console.log('Added Proofed to csvHeaders:', globalState.csvHeaders);
+            globalState.csvHeaders = [...globalState.csvHeaders, 'Proofed'];
         }
         
         // Generate CSV content
-        let csvContent = await generateCSVContent();
+        const csvContent = await generateCSVContent();
         
         // Validate CSV content
         if (!validateCSVContent(csvContent, globalState.csvHeaders)) {
             throw new Error('Generated CSV content is invalid');
         }
-        
-        // Log CSV content preview for debugging
-        console.log('csvContent type:', typeof csvContent, 'preview:', csvContent.slice(0, 200));
         
         // Create a writable stream
         const writable = await currentFileHandle.createWritable();
@@ -189,15 +176,13 @@ async function saveToOriginalFile() {
             `;
         }
         
-        console.log('✅ File successfully saved to disk!');
-        
         // Regenerate bibliography
         const generator = new BibliographyGenerator();
         generator.generateBibliography();
         
         return true;
     } catch (error) {
-        console.error('💥 Error saving file:', error);
+        console.error('Error saving file:', error);
         alert('Error saving file: ' + error.message);
         return false;
     }
@@ -209,8 +194,6 @@ async function saveCSVAs() {
         const suggestedName = currentFileHandle ?
             (await currentFileHandle.getFile()).name : 'bibliography.csv';
         
-        console.log("Save As dialog with suggested name:", suggestedName);
-        
         const fileHandle = await window.showSaveFilePicker({
             suggestedName: suggestedName,
             types: [{
@@ -221,7 +204,6 @@ async function saveCSVAs() {
         
         // Sync from grid if it exists
         if (globalState.csvManager && globalState.csvManager.gridApi && !globalState.csvManager.gridApi.isDestroyed()) {
-            console.log("📊 Syncing current grid data before Save As...");
             globalState.csvManager.gridApi.stopEditing();
             const currentData = [];
             globalState.csvManager.gridApi.forEachNode(node => {
@@ -230,31 +212,26 @@ async function saveCSVAs() {
                 }
             });
             globalState.csvData = [...currentData];
-            globalState.editedCsvData = JSON.parse(JSON.stringify(currentData)); // Deep copy
+            globalState.editedCsvData = JSON.parse(JSON.stringify(currentData));
         }
         
         // Add Proofed column to editedCsvData
         globalState.editedCsvData.forEach((row, index) => {
             row.Proofed = globalState.proofingStates[index] ? 'true' : 'false';
-            console.log(`Set Proofed for row ${index}: ${row.Proofed}`);
         });
         
         // Ensure Proofed is in headers
         if (!globalState.csvHeaders.includes('Proofed')) {
-            globalState.csvHeaders.push('Proofed');
-            console.log('Added Proofed to csvHeaders:', globalState.csvHeaders);
+            globalState.csvHeaders = [...globalState.csvHeaders, 'Proofed'];
         }
         
         // Generate CSV content
-        let csvContent = await generateCSVContent();
+        const csvContent = await generateCSVContent();
         
         // Validate CSV content
         if (!validateCSVContent(csvContent, globalState.csvHeaders)) {
             throw new Error('Generated CSV content is invalid');
         }
-        
-        // Log CSV content preview for debugging
-        console.log('csvContent type:', typeof csvContent, 'preview:', csvContent.slice(0, 200));
         
         // Create a writable stream
         const writable = await fileHandle.createWritable();
@@ -285,19 +262,15 @@ async function saveCSVAs() {
             `;
         }
         
-        console.log('✅ File saved as new file successfully!');
         alert('File saved successfully!');
         return true;
     } catch (error) {
         console.error('Error saving file:', error);
         
-        if (error.name === 'AbortError') {
-            console.log("Save As canceled by user");
-            return false;
-        } else {
+        if (error.name !== 'AbortError') {
             alert('Error saving file: ' + error.message);
-            return false;
         }
+        return false;
     }
 }
 
@@ -312,10 +285,8 @@ async function generateCSVContent() {
         globalState.editedCsvData.forEach(entry => Object.keys(entry).forEach(key => allHeaders.add(key)));
         globalState.csvHeaders = Array.from(allHeaders);
         
-        // Ensure Proofed column is included
         if (!globalState.csvHeaders.includes('Proofed')) {
             globalState.csvHeaders.push('Proofed');
-            console.log('Added Proofed to csvHeaders in generateCSVContent:', globalState.csvHeaders);
         }
         
         if (!globalState.csvHeaders.length) {
@@ -323,17 +294,10 @@ async function generateCSVContent() {
         }
     }
     
-    // Log headers and sample data for debugging
-    console.log('Generating CSV with headers:', globalState.csvHeaders);
-    console.log('Sample editedCsvData:', globalState.editedCsvData.slice(0, 2));
-    
-    // Use Papa Parse to generate clean CSV
-    const csvContent = CSVParser.generateCSV(globalState.csvHeaders, globalState.editedCsvData);
-    console.log('Generated CSV content length:', csvContent.length);
-    return csvContent;
+    return CSVParser.generateCSV(globalState.csvHeaders, globalState.editedCsvData);
 }
 
-// Process CSV content (compatible with existing code)
+// Process CSV content
 async function processCSVContent(content) {
     try {
         const csvPreview = document.getElementById('csvPreview');
@@ -363,20 +327,12 @@ async function processCSVContent(content) {
         // Load Proofed column into proofingStates
         globalState.proofingStates = {};
         globalState.editedCsvData.forEach((row, index) => {
-            if (row.Proofed === 'true' || row.Proofed === true) {
-                globalState.proofingStates[index] = true;
-                console.log(`Loaded Proofed for row ${index}: true`);
-            } else {
-                globalState.proofingStates[index] = false;
-                console.log(`Loaded Proofed for row ${index}: false`);
+            globalState.proofingStates[index] = (row.Proofed === 'true' || row.Proofed === true);
+            if (!row.Proofed) {
+                row.Proofed = 'false'; // Initialize missing Proofed values
             }
         });
-        try {
-            localStorage.setItem('proofingStates', JSON.stringify(globalState.proofingStates));
-            console.log('Saved proofingStates to localStorage after loading CSV:', globalState.proofingStates);
-        } catch (error) {
-            console.error('Error saving proofingStates to localStorage:', error);
-        }
+        localStorage.setItem('proofingStates', JSON.stringify(globalState.proofingStates));
         
         if (csvPreview) {
             csvPreview.innerHTML = `<strong>Preview:</strong> ${globalState.csvHeaders.join(', ')} (${globalState.csvData.length} entries).`;
@@ -387,7 +343,7 @@ async function processCSVContent(content) {
             const manager = new entryTypeModule.EntryTypeManager();
             manager.updateEntryTypesDropdown();
         } catch (error) {
-            console.warn('Error updating entry types:', error);
+            console.error('Error updating entry types:', error);
         }
         
         const generator = new BibliographyGenerator();
@@ -400,7 +356,7 @@ async function processCSVContent(content) {
                 const csvManager = new csvModule.CSVManager();
                 csvManager.displayCSVTable();
             } catch (error) {
-                console.warn('Error displaying CSV table:', error);
+                console.error('Error displaying CSV table:', error);
             }
         } else {
             const previewTabButton = document.querySelector('.tab-button[data-tab="preview"]');
@@ -445,7 +401,7 @@ async function processCSVContent(content) {
             const manager = new entryTypeModule.EntryTypeManager();
             manager.updateEntryTypesDropdown();
         } catch (error) {
-            console.warn('Error updating entry types after error:', error);
+            console.error('Error updating entry types after error:', error);
         }
         
         const generator = new BibliographyGenerator();

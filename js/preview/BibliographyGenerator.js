@@ -1,4 +1,4 @@
-// js/preview/BibliographyGenerator.js (Updated with enhanced logging)
+// js/preview/BibliographyGenerator.js (Production-ready with minimal logs)
 import { globalState, updateEntryCount } from '../state/globalState.js';
 import { TextProcessor } from '../utils/textProcessor.js';
 import { TemplateProcessor } from './templateProcessor.js';
@@ -21,7 +21,6 @@ export class BibliographyGenerator {
         try {
             const processedEntries = this.processEntries();
             globalState.outputDiv.innerHTML = '';
-            console.log('Generating bibliography with', processedEntries.length, 'entries');
             
             if (processedEntries.length > 0) {
                 processedEntries.forEach(processedEntry => {
@@ -34,7 +33,6 @@ export class BibliographyGenerator {
                     globalState.outputDiv.appendChild(div);
                 });
 
-                console.log('Checkboxes rendered for entries:', processedEntries.map(e => e.originalCsvIndex));
                 this.setupProofingCheckboxes();
 
                 // Add proofing summary
@@ -57,15 +55,12 @@ export class BibliographyGenerator {
 
     setupProofingCheckboxes() {
         const checkboxes = globalState.outputDiv.querySelectorAll('.proof-checkbox');
-        console.log('Found', checkboxes.length, 'proof-checkbox elements');
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
                 const entryId = e.target.dataset.entryId;
                 globalState.proofingStates[entryId] = e.target.checked;
-                console.log(`Proofing state updated for entry ${entryId}: ${e.target.checked}`);
                 try {
                     localStorage.setItem('proofingStates', JSON.stringify(globalState.proofingStates));
-                    console.log('Saved proofingStates to localStorage:', globalState.proofingStates);
                 } catch (error) {
                     console.error('Error saving to localStorage:', error);
                 }
@@ -76,8 +71,6 @@ export class BibliographyGenerator {
                 const summary = globalState.outputDiv.querySelector('.text-sm.text-gray-500');
                 if (summary) {
                     summary.textContent = `${proofedCount} of ${processedEntries.length} entries proofed`;
-                } else {
-                    console.warn('Proofing summary element not found');
                 }
             });
         });
@@ -167,7 +160,7 @@ export class BibliographyGenerator {
             for (const keyInEntry in entry) {
                 if (Object.prototype.hasOwnProperty.call(entry, keyInEntry)) {
                     if (keyInEntry !== 'originalCsvIndex') {
-                         entryDataForTemplate[keyInEntry.toUpperCase()] = entry[keyInEntry];
+                         entryDataForTemplate[keyInEntry.toUpperCase()] = entry[keyInEntry] || '';
                     }
                 }
             }

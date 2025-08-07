@@ -1,4 +1,4 @@
-// js/main.js (Updated with TypeError fix, Ctrl+S/Cmd+S, and proofing cleanup)
+// js/main.js (Production-ready with Reset Proofing button margin)
 import { globalState } from './state/globalState.js';
 
 // Import all the managers/handlers we need
@@ -41,7 +41,6 @@ class BibliographyManager {
             globalState.bibliographyOutputGlobal.addEventListener('contextmenu', (e) => {
                 if (previewContextMenu) previewContextMenu.showContextMenu(e);
             });
-            // Removed 'input' event listener to avoid TypeError
         }
 
         if (globalState.csvCellDetailPreviewer) {
@@ -86,7 +85,6 @@ class BibliographyManager {
 
             WordExporterModule.addWordExportButton();
             this.managersInitialized = true;
-            console.log('All managers initialized successfully');
         } catch (error) {
             console.error('Error initializing managers:', error);
         }
@@ -173,11 +171,9 @@ class BibliographyManager {
         const saveButtons = document.querySelectorAll('#saveFileBtn, #saveFileBtn2');
         saveButtons.forEach(btn => {
             btn.addEventListener('click', async () => {
-                console.log('💾 Save button clicked - attempting to save to file system');
-                
                 try {
                     if (globalState.csvManager && globalState.csvManager.gridApi && !globalState.csvManager.gridApi.isDestroyed()) {
-                        console.log('📊 Syncing grid data before save...');
+                        globalState.csvManager.gridApi.stopEditing();
                         const currentData = [];
                         globalState.csvManager.gridApi.forEachNode(node => {
                             if (node.data) {
@@ -189,29 +185,18 @@ class BibliographyManager {
                     }
 
                     if (window.saveToOriginalFile && typeof window.saveToOriginalFile === 'function') {
-                        console.log('💾 Using File System API to save...');
                         const saved = await window.saveToOriginalFile();
-                        
-                        if (saved) {
-                            console.log('✅ File saved successfully to disk!');
-                            globalState.originalCsvData = JSON.parse(JSON.stringify(globalState.editedCsvData));
-                            const module = await import('./preview/BibliographyGenerator.js');
-                            const generator = new module.BibliographyGenerator();
-                            generator.generateBibliography();
-                        } else {
-                            console.log('⚠️ Save was cancelled by user');
+                        if (!saved) {
+                            console.warn('Save cancelled by user');
                         }
+                    } else if (exportManager && exportManager.exportCSV) {
+                        exportManager.exportCSV();
+                        alert('File System API not supported. File has been downloaded instead.');
                     } else {
-                        console.log('⚠️ File System API not available, using download fallback');
-                        if (exportManager && exportManager.exportCSV) {
-                            exportManager.exportCSV();
-                            alert('File System API not supported. File has been downloaded instead.');
-                        } else {
-                            alert('Save functionality not available');
-                        }
+                        alert('Save functionality not available');
                     }
                 } catch (error) {
-                    console.error('💥 Error saving file:', error);
+                    console.error('Error saving file:', error);
                     alert('Error saving file: ' + error.message);
                 }
             });
@@ -231,17 +216,34 @@ class BibliographyManager {
         if (addCustomStyleBtn) {
             addCustomStyleBtn.addEventListener('click', () => this.handleAddCustomStyle());
         }
+
+        // Add reset proofing button with margin-top
+        const resetProofingBtn = document.createElement('button');
+        resetProofingBtn.textContent = 'Reset Proofing';
+        resetProofingBtn.className = 'btn-action';
+        resetProofingBtn.style.marginTop = '12px';
+        resetProofingBtn.addEventListener('click', () => {
+            globalState.proofingStates = {};
+            globalState.editedCsvData.forEach(row => {
+                row.Proofed = 'false';
+            });
+            localStorage.setItem('proofingStates', JSON.stringify({}));
+            this.generateBibliography();
+        });
+        const controlGroup = document.querySelector('.control-group');
+        if (controlGroup) {
+            controlGroup.appendChild(resetProofingBtn);
+        } else {
+            console.warn('Control group not found for reset proofing button');
+        }
     }
 
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', async (event) => {
             if ((event.ctrlKey || event.metaKey) && event.key === 's') {
                 event.preventDefault();
-                console.log('Ctrl+S/Cmd+S pressed - attempting to save');
-                
                 try {
                     if (globalState.csvManager && globalState.csvManager.gridApi && !globalState.csvManager.gridApi.isDestroyed()) {
-                        console.log('📊 Syncing grid data before save...');
                         globalState.csvManager.gridApi.stopEditing();
                         const currentData = [];
                         globalState.csvManager.gridApi.forEachNode(node => {
@@ -255,10 +257,8 @@ class BibliographyManager {
 
                     if (window.saveToOriginalFile) {
                         const saved = await window.saveToOriginalFile();
-                        if (saved) {
-                            console.log('✅ File saved via keyboard shortcut');
-                        } else {
-                            console.log('⚠️ Save cancelled by user');
+                        if (!saved) {
+                            console.warn('Save cancelled by user');
                         }
                     } else {
                         console.warn('Save function not available');
@@ -330,7 +330,6 @@ class BibliographyManager {
     }
 
     cleanup() {
-        console.log('Cleaning up Bibliography Manager...');
         if (csvManager) {
             csvManager.cleanup();
         }
@@ -340,10 +339,6 @@ class BibliographyManager {
 
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Bibliography Manager initializing...');
     const app = new BibliographyManager();
     await app.init();
-    console.log('Bibliography Manager initialized successfully');
-    
-    window.bibliographyApp = app;
 });

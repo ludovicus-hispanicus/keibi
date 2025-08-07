@@ -1,4 +1,4 @@
-// js/state/globalState.js (Fixed with safe proofing states)
+// js/state/globalState.js (Production-ready with minimal logs)
 import { DEFAULT_STYLE_TEMPLATES } from '../config/constants.js';
 
 // Global state management
@@ -30,12 +30,12 @@ class GlobalState {
         // Style templates
         this.styleTemplates = { ...DEFAULT_STYLE_TEMPLATES };
         
-        // NEW: Proofing states with safe initialization
+        // Proofing states
         const proofingData = localStorage.getItem('proofingStates');
         try {
             this.proofingStates = proofingData ? JSON.parse(proofingData) : {};
         } catch (e) {
-            console.warn('Invalid proofingStates in localStorage, resetting to {}:', e);
+            console.error('Invalid proofingStates in localStorage:', e);
             this.proofingStates = {};
             localStorage.setItem('proofingStates', JSON.stringify(this.proofingStates));
         }
