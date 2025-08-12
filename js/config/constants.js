@@ -21,7 +21,7 @@ export const DEFAULT_STYLE_TEMPLATES = {
     nabu: "[LIST_LASTNAMES], [LIST_NAMES], [TITLE]: [JOURNAL] [VOLUME].",
     reviewfirst: "[LIST_LASTNAMES:bold], [LIST_NAMES], [TITLE]: [JOURNAL] [VOLUME] ([YEAR]) [PAGES] ([REVIEWER:italic]).",
     reviewsecond: "[LIST_LASTNAMES:italic], [LIST_INITIALS:italic], [TITLE] [[KEIBI:italic]]: [JOURNAL] [VOLUME] ([YEAR]) [PAGES] ([REVIEWER:italic])[CONFER:italic].",
-    revieweditorfirst: "[ED_LIST_LASTNAMES:bold], [ED_LIST_NAMES] (Hg.), [TITLE] ([SERIES] [SERIES NUMBER]): [JOURNAL] ([YEAR]) [PAGES] ([REVIEWER:italic]).",
+    revieweditorfirst: "[ED_LIST_LASTNAMES:bold], [ED_LIST_NAMES] (Hg.), [TITLE]: [JOURNAL] ([YEAR]) [PAGES] ([REVIEWER:italic]).",
     revieweditorsecond: "[ED_LIST_LASTNAMES:italic], [ED_LIST_INITIALS:italic] <i>(Hg.)</i>, [TITLE] [[KEIBI:italic]]: [JOURNAL] [VOLUME] ([YEAR]) [PAGES] ([REVIEWER:italic])[CONFER:italic]."
 };
 

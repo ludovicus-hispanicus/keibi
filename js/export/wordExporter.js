@@ -1,4 +1,4 @@
-// js/export/wordExporter.js (Production-ready with minimal logs)
+// js/export/wordExporter.js (Fixed version with proper spacing)
 import { globalState } from '../state/globalState.js';
 
 export class WordExporter {
@@ -145,11 +145,38 @@ export class WordExporter {
             }));
         }
 
+        // Clean up the HTML to ensure proper spacing
+        const cleanedHtml = this.preprocessHTML(html);
+        
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
+        tempDiv.innerHTML = cleanedHtml;
         this.processNodeWithFormatting(tempDiv, textRuns, { bold: false, italic: false, superscript: false });
 
         return textRuns;
+    }
+
+    preprocessHTML(html) {
+        // Fix spacing issues in the HTML before processing
+        let cleaned = html;
+        
+        // Ensure spaces after closing italic/bold tags that are followed by text/numbers
+        cleaned = cleaned.replace(/<\/(em|i|strong|b)>(\S)/g, '</$1> $2');
+        
+        // Ensure spaces before opening tags that follow text without whitespace
+        cleaned = cleaned.replace(/(\S)<(em|i|strong|b)>/g, '$1 <$2>');
+        
+        // Handle asterisk-style italics (common in bibliography formatting)
+        cleaned = cleaned.replace(/\*([^*]+)\*(\S)/g, '<em>$1</em> $2');
+        
+        // Ensure proper spacing around colons and periods followed by years
+        cleaned = cleaned.replace(/:(\d{4})/g, ': $1');
+        cleaned = cleaned.replace(/\.(\d{4})/g, '. $1');
+        
+        // Fix missing spaces between journal names and years
+        cleaned = cleaned.replace(/>([^<\s])(\d{4})/g, '>$1 $2');
+        cleaned = cleaned.replace(/([a-zA-Z])(\d{4})/g, '$1 $2');
+        
+        return cleaned;
     }
 
     processNodeWithFormatting(node, textRuns, currentFormatting) {
@@ -158,7 +185,7 @@ export class WordExporter {
         for (const child of node.childNodes) {
             if (child.nodeType === Node.TEXT_NODE) {
                 const text = child.textContent;
-                if (text.trim()) {
+                if (text) { // Process all text, even if just whitespace
                     textRuns.push(new TextRun({
                         text: text,
                         font: "Times New Roman",

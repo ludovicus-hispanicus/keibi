@@ -24,3 +24,10 @@ This is a client-side JavaScript application using:
 - AG-Grid for data editing
 - Papa Parse for CSV handling
 - Custom citation formatting engine
+
+
+### Known bugs
+1. when modifying files two entries get also modified
+2. saving from the editable field not possible → remove that as directly modifing the table is working properly
+3. add italic and superscript and subscript for option in the edition
+4. Possibility to get live updates maybe with a secod window one for table and one for the preview.
