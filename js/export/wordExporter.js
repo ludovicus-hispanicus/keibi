@@ -107,7 +107,7 @@ export class WordExporter {
                                     text: "Bibliographie",
                                     bold: true,
                                     size: 28,
-                                    font: "Times New Roman"
+                                    font: "SemiramisUnicode"
                                 })
                             ],
                             alignment: AlignmentType.CENTER,
@@ -140,7 +140,7 @@ export class WordExporter {
         if (isChecked) {
             textRuns.push(new TextRun({
                 text: "[✓] ",
-                font: "Times New Roman",
+                font: "SemiramisUnicode",
                 size: 20
             }));
         }
@@ -166,7 +166,7 @@ export class WordExporter {
         cleaned = cleaned.replace(/(\S)<(em|i|strong|b)>/g, '$1 <$2>');
         
         // Handle asterisk-style italics (common in bibliography formatting)
-        cleaned = cleaned.replace(/\*([^*]+)\*(\S)/g, '<em>$1</em> $2');
+        cleaned = cleaned.replace(/\*([^*]+)\*(\S)/g, '<i>$1</i> $2');
         
         // Ensure proper spacing around colons and periods followed by years
         cleaned = cleaned.replace(/:(\d{4})/g, ': $1');
@@ -188,7 +188,7 @@ export class WordExporter {
                 if (text) { // Process all text, even if just whitespace
                     textRuns.push(new TextRun({
                         text: text,
-                        font: "Times New Roman",
+                        font: "SemiramisUnicode",
                         size: 20,
                         bold: currentFormatting.bold,
                         italics: currentFormatting.italic,

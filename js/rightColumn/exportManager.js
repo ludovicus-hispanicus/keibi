@@ -73,7 +73,7 @@ export class ExportManager {
             let entryHTML = entryNode.innerHTML
                 .replace(/<span class="editable-field"[^>]*>(.*?)<\/span>/gi, '$1')
                 .replace(/<span class="font-bold">(.*?)<\/span>/gi, '<strong>$1</strong>')
-                .replace(/<span class="italic">(.*?)<\/span>/gi, '<em>$1</em>')
+                .replace(/<span class="italic">(.*?)<\/span>/gi, '<i>$1</i>')
                 .replace(/<span class="tag[^"]*">(.*?)<\/span>/gi, '<span class="tag">$1</span>');
             
             htmlContent += `    <div class="bibliography-entry">${entryHTML}</div>\n`;

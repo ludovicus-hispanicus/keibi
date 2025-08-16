@@ -226,4 +226,109 @@ export class TemplateProcessor {
 
         return result;
     }
+
+    // ADD these methods to your existing TemplateProcessor class:
+
+    static processFormatTemplateWithSync(template, data, entryIndexForMapping) {
+        console.log('[TEMPLATE_DEBUG] processFormatTemplateWithSync called:', { entryIndexForMapping, template: template.substring(0, 50) + '...' });
+        
+        // First, process with your existing logic
+        let result = this.processFormatTemplate(template, data, entryIndexForMapping);
+        console.log('[TEMPLATE_DEBUG] Before sync enhancement:', result.substring(0, 100) + '...');
+        
+        // Then, enhance existing editable fields with sync capabilities
+        result = this.enhanceWithSyncCapability(result, entryIndexForMapping);
+        console.log('[TEMPLATE_DEBUG] After sync enhancement:', result.substring(0, 100) + '...');
+        
+        return result;
+    }
+
+    static enhanceWithSyncCapability(htmlContent, entryIndexForMapping) {
+        console.log('[TEMPLATE_DEBUG] enhanceWithSyncCapability called:', { entryIndexForMapping });
+        
+        if (entryIndexForMapping < 0) {
+            console.log('[TEMPLATE_DEBUG] Skipping enhancement - invalid entry index');
+            return htmlContent;
+        }
+        
+        // Create a temporary DOM element to parse the HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+        
+        // Find all existing editable fields
+        const editableFields = tempDiv.querySelectorAll('.editable-field[data-entry-index][data-field-name]');
+        console.log('[TEMPLATE_DEBUG] Found editable fields:', editableFields.length);
+        
+        editableFields.forEach((field, index) => {
+            const fieldName = field.dataset.fieldName;
+            const csvFieldName = this.mapFieldNameToCsvField(fieldName);
+            
+            console.log('[TEMPLATE_DEBUG] Processing field:', { index, fieldName, csvFieldName });
+            
+            // Add CSV sync attributes to existing fields
+            field.dataset.csvField = csvFieldName;
+            field.dataset.rowIndex = entryIndexForMapping;
+            field.dataset.originalContent = field.textContent || field.innerText || '';
+            field.setAttribute('contenteditable', 'true');
+            
+            // Add CSS class for new sync system
+            field.classList.add('sync-enabled');
+            
+            console.log('[TEMPLATE_DEBUG] Enhanced field:', {
+                fieldName,
+                csvField: field.dataset.csvField,
+                rowIndex: field.dataset.rowIndex,
+                hasContentEditable: field.getAttribute('contenteditable'),
+                classes: field.className
+            });
+        });
+        
+        const result = tempDiv.innerHTML;
+        console.log('[TEMPLATE_DEBUG] Enhancement complete. Enhanced fields count:', editableFields.length);
+        return result;
+    }
+
+    static mapFieldNameToCsvField(fieldName) {
+        const mapping = {
+            'TITLE': 'Title',
+            'YEAR': 'Publication Year',
+            'JOURNAL': 'Publication Title', 
+            'VOLUME': 'Volume',
+            'PAGES': 'Pages',
+            'PLACE': 'Place',
+            'PUBLISHER': 'Publisher',
+            'URL': 'URL',
+            'DOI': 'DOI',
+            'ITEM TYPE': 'Item Type',
+            'SERIES': 'Series',
+            'SERIES NUMBER': 'Series Number',
+            'AKKADIAN': 'Akkadian',
+            'DETERMINATIVE': 'Determinative',
+            'KEIBI': 'related',
+            'CONFER': 'Confer',
+            'REVIEWER': 'Author Review',
+            'LASTNAME': 'Author',
+            'NAME': 'Author',
+            'NAME_INIT': 'Author',
+            'LIST_LASTNAMES': 'Author',
+            'LIST_NAMES': 'Author', 
+            'LIST_INITIALS': 'Author',
+            'ED_LASTNAME': 'Editor',
+            'ED_NAME': 'Editor',
+            'ED_NAME_INIT': 'Editor',
+            'ED_LIST_LASTNAMES': 'Editor',
+            'ED_LIST_NAMES': 'Editor',
+            'ED_LIST_INITIALS': 'Editor'
+        };
+        
+        // Handle numbered fields from author list processing
+        if (fieldName && (fieldName.startsWith('LASTNAME_') || fieldName.startsWith('FIRSTNAME_'))) {
+            return 'Author';
+        }
+        if (fieldName && (fieldName.startsWith('ED_LASTNAME_') || fieldName.startsWith('ED_FIRSTNAME_'))) {
+            return 'Editor';
+        }
+        
+        return mapping[fieldName] || fieldName;
+    }
 }

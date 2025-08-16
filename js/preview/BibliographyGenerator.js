@@ -168,7 +168,7 @@ export class BibliographyGenerator {
             this.processAuthorsAndEditors(entry, template, entryDataForTemplate);
             this.processOtherFields(entry, entryDataForTemplate);
 
-            let formattedEntryString = TemplateProcessor.processFormatTemplate(template, entryDataForTemplate, originalCsvIndex);
+            let formattedEntryString = TemplateProcessor.processFormatTemplateWithSync(template, entryDataForTemplate, originalCsvIndex);
             
             const tags = (entry['Manual Tags'] || entry.Tags || entry['manual tags'] || entry.tags || '').trim();
             if (tags) {

@@ -62,7 +62,8 @@ class BibliographyManager {
                 CSVNavigationModule,
                 ExportManagerModule,
                 CSVManagerModule,
-                WordExporterModule
+                WordExporterModule,
+                PreviewSyncModule
             ] = await Promise.all([
                 import('./styles/styleManager.js'),
                 import('./ui/tabManager.js'),
@@ -71,7 +72,8 @@ class BibliographyManager {
                 import('./csvEditor/navigation.js'),
                 import('./rightColumn/exportManager.js'),
                 import('./csvEditor/csvManager.js'),
-                import('./export/wordExporter.js')
+                import('./export/wordExporter.js'),
+                import('./preview/previewSyncManager.js')
             ]);
 
             styleManager = new StyleManagerModule.StyleManager();
@@ -82,6 +84,10 @@ class BibliographyManager {
             exportManager = new ExportManagerModule.ExportManager();
             csvManager = new CSVManagerModule.CSVManager();
             globalState.csvManager = csvManager;
+
+            const previewSyncManager = new PreviewSyncModule.PreviewSyncManager();
+            globalState.previewSyncManager = previewSyncManager;
+            previewSyncManager.initialize();
 
             WordExporterModule.addWordExportButton();
             this.managersInitialized = true;

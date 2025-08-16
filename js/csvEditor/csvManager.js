@@ -133,20 +133,42 @@ export class CSVManager {
         gridContainer.innerHTML = '';
 
         const columnDefs = globalState.csvHeaders.map(header => ({
-            field: header,
-            headerName: header,
-            editable: true,
-            sortable: true,
-            filter: true,
-            resizable: true,
-            minWidth: CSV_CONFIG?.STANDARD_COLUMN_WIDTH || 150,
-            flex: 1,
-            cellEditor: 'agTextCellEditor',
-            cellEditorParams: { maxLength: 2000 },
-            cellRenderer: params => params.value && params.value.length > 50
-                ? `<span title="${params.value}">${params.value}</span>`
-                : params.value || ''
-        }));
+        field: header,
+        headerName: header,
+        editable: true,
+        sortable: true,
+        filter: true,
+        resizable: true,
+        minWidth: CSV_CONFIG?.STANDARD_COLUMN_WIDTH || 150,
+        flex: 1,
+        cellEditor: 'agTextCellEditor',
+        cellEditorParams: { maxLength: 2000 },
+        // REPLACE the cellRenderer with this:
+        cellRenderer: params => {
+            if (!params.value) return '';
+            
+            const value = params.value;
+            
+            // Check if the value contains HTML
+            if (value.includes('<') && value.includes('>')) {
+                // For HTML content, show a preview with an indicator
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = value;
+                const plainText = tempDiv.textContent || tempDiv.innerText || '';
+                
+                // Create a span that shows the formatted text with an HTML indicator
+                const displayText = plainText.length > 50 ? plainText.substring(0, 47) + '...' : plainText;
+                return `<span title="${value}" style="font-style: italic; color: #0066cc;">${displayText} [HTML]</span>`;
+            } else {
+                // Regular text content
+                return value.length > 50 
+                    ? `<span title="${value}">${value.substring(0, 47)}...</span>`
+                    : value;
+            }
+        }
+
+        
+    }));
 
         const gridOptions = {
             columnDefs: columnDefs,
@@ -284,7 +306,244 @@ export class CSVManager {
             globalState.editedCsvData[rowIndex][fieldName] = newValue;
             console.log(`[CSV_DEBUG] AFTER editedCsvData assignment - Row 16 Title:`, globalState.csvData[16].Title);
         }
+
+        // ADD THIS SINGLE LINE:
+        this.notifyPreviewOfChange(rowIndex, fieldName, newValue);
+
+        setTimeout(() => {
+            this.setupSyncButton();
+        }, 1000);
     }
+
+    // Add this new method to your CSVManager class
+
+    // ADD this method to your CSVManager class to improve grid sync:
+
+    forceGridRefresh(rowIndex, fieldName, newValue) {
+        console.log('[CSV_DEBUG] forceGridRefresh called:', { rowIndex, fieldName, newValue });
+        
+        if (!this.gridApi || this.gridApi.isDestroyed()) {
+            console.warn('[CSV_DEBUG] Cannot refresh - grid not available');
+            return false;
+        }
+        
+        try {
+            // Get the row node
+            const rowNode = this.gridApi.getRowNode(rowIndex);
+            if (!rowNode) {
+                console.warn('[CSV_DEBUG] Row node not found for refresh:', rowIndex);
+                return false;
+            }
+            
+            // Update the data in multiple ways to ensure it sticks
+            console.log('[CSV_DEBUG] Before update - row data:', rowNode.data[fieldName]);
+            
+            // Method 1: Update row data directly
+            rowNode.data[fieldName] = newValue;
+            
+            // Method 2: Use setDataValue
+            rowNode.setDataValue(fieldName, newValue);
+            
+            // Method 3: Force refresh
+            this.gridApi.refreshCells({
+                rowNodes: [rowNode],
+                columns: [fieldName],
+                force: true,
+                suppressFlash: true
+            });
+            
+            // Method 4: Redraw the entire row
+            this.gridApi.redrawRows({ rowNodes: [rowNode] });
+            
+            console.log('[CSV_DEBUG] After update - row data:', rowNode.data[fieldName]);
+            
+            return true;
+        } catch (error) {
+            console.error('[CSV_DEBUG] Error in forceGridRefresh:', error);
+            return false;
+        }
+    }
+
+    // MODIFY your existing notifyPreviewOfChange method:
+    notifyPreviewOfChange(rowIndex, fieldName, newValue) {
+        console.log('[CSV_DEBUG] notifyPreviewOfChange called:', { rowIndex, fieldName, newValue });
+        
+        if (globalState.previewSyncManager) {
+            try {
+                globalState.previewSyncManager.updatePreviewFromCsv(rowIndex, fieldName, newValue);
+            } catch (error) {
+                console.error('[CSV_DEBUG] Error notifying preview of change:', error);
+            }
+        }
+        
+        // Also force a grid refresh to ensure consistency
+        setTimeout(() => {
+            this.forceGridRefresh(rowIndex, fieldName, newValue);
+        }, 100);
+    }
+
+    // ADD this method to your csvManager.js to force sync grid data to globalState:
+
+    // ADD this setupSyncButton method to your csvManager.js class:
+
+    setupSyncButton() {
+        console.log('[CSV_DEBUG] Setting up sync button...');
+        
+        // Create a sync button in the CSV editor
+        const csvGrid = document.getElementById('csvGrid');
+        if (!csvGrid) {
+            console.warn('[CSV_DEBUG] CSV grid not found for sync button');
+            return;
+        }
+        
+        // Check if button already exists
+        if (document.getElementById('syncGridStateBtn')) {
+            console.log('[CSV_DEBUG] Sync button already exists');
+            return;
+        }
+        
+        const syncButton = document.createElement('button');
+        syncButton.id = 'syncGridStateBtn';
+        syncButton.textContent = 'Fix Grid Sync';
+        syncButton.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+        `;
+        
+        syncButton.addEventListener('click', () => {
+            console.log('[CSV_DEBUG] Sync button clicked - forcing grid to state sync');
+            this.forceGridToGlobalStateSync();
+        });
+        
+        // Add the button to the grid container
+        csvGrid.style.position = 'relative';
+        csvGrid.appendChild(syncButton);
+        
+        console.log('[CSV_DEBUG] Sync button added successfully');
+    }
+
+    // ALSO ADD the forceGridToGlobalStateSync method if you haven't already:
+
+    forceGridToGlobalStateSync() {
+        console.log('[CSV_DEBUG] === FORCING GRID TO GLOBALSTATE SYNC ===');
+        
+        if (!this.gridApi || this.gridApi.isDestroyed()) {
+            console.error('[CSV_DEBUG] Cannot sync - grid not available');
+            return false;
+        }
+        
+        let syncCount = 0;
+        let mismatchCount = 0;
+        
+        // Get all data from the grid
+        const gridData = [];
+        this.gridApi.forEachNode(node => {
+            if (node.data) {
+                gridData.push(node.data);
+            }
+        });
+        
+        console.log('[CSV_DEBUG] Grid has', gridData.length, 'rows');
+        console.log('[CSV_DEBUG] GlobalState has', globalState.csvData.length, 'rows');
+        
+        // Sync each row
+        gridData.forEach((gridRow, index) => {
+            if (!globalState.csvData[index]) {
+                console.warn('[CSV_DEBUG] GlobalState missing row', index);
+                // Add missing row
+                globalState.csvData[index] = { ...gridRow };
+                if (globalState.editedCsvData) {
+                    globalState.editedCsvData[index] = { ...gridRow };
+                }
+                syncCount++;
+                return;
+            }
+            
+            let rowMismatches = 0;
+            
+            // Check each field in the row
+            Object.keys(gridRow).forEach(fieldName => {
+                const gridValue = gridRow[fieldName] || '';
+                const globalValue = globalState.csvData[index][fieldName] || '';
+                
+                if (gridValue !== globalValue) {
+                    console.log('[CSV_DEBUG] Syncing mismatch:', {
+                        row: index,
+                        field: fieldName,
+                        gridValue: gridValue.substring(0, 50) + (gridValue.length > 50 ? '...' : ''),
+                        globalValue: globalValue.substring(0, 50) + (globalValue.length > 50 ? '...' : '')
+                    });
+                    
+                    // Update globalState with grid value (grid is the source of truth)
+                    globalState.csvData[index][fieldName] = gridValue;
+                    
+                    // Also update editedCsvData
+                    if (globalState.editedCsvData[index]) {
+                        globalState.editedCsvData[index][fieldName] = gridValue;
+                    }
+                    
+                    rowMismatches++;
+                    mismatchCount++;
+                }
+            });
+            
+            if (rowMismatches > 0) {
+                syncCount++;
+            }
+        });
+        
+        console.log('[CSV_DEBUG] Sync complete:', {
+            totalMismatches: mismatchCount,
+            rowsWithMismatches: syncCount,
+            totalRows: gridData.length
+        });
+        
+        // Show success message
+        alert(`Grid sync completed!\nFixed ${mismatchCount} mismatches across ${syncCount} rows.`);
+        
+        // Regenerate the preview to reflect the corrected data
+        setTimeout(() => {
+            this.regeneratePreviewAfterSync();
+        }, 100);
+        
+        return true;
+    }
+
+    // AND the regeneratePreviewAfterSync method:
+
+    async regeneratePreviewAfterSync() {
+        console.log('[CSV_DEBUG] Regenerating preview after sync...');
+        
+        try {
+            const module = await import('../preview/BibliographyGenerator.js');
+            const generator = new module.BibliographyGenerator();
+            const entryCount = generator.generateBibliography();
+            
+            console.log('[CSV_DEBUG] Preview regenerated with', entryCount, 'entries');
+            
+            // Re-setup sync listeners
+            if (globalState.previewSyncManager) {
+                setTimeout(() => {
+                    globalState.previewSyncManager.setupPreviewEditingListeners();
+                    console.log('[CSV_DEBUG] Preview sync listeners re-established');
+                }, 200);
+            }
+        } catch (error) {
+            console.error('[CSV_DEBUG] Error regenerating preview:', error);
+        }
+    }
+
+    // REPLACE your selectCellAndShowInPreviewer method with this quieter version:
 
     selectCellAndShowInPreviewer(event) {
         const rowIndex = event.node.rowIndex;
@@ -293,17 +552,57 @@ export class CSVManager {
         
         const actualValue = globalState.csvData[rowIndex] ? (globalState.csvData[rowIndex][fieldName] || '') : '';
         
-        if (gridValue !== actualValue) {
-            console.warn('[CSV_DEBUG] GRID/STATE MISMATCH DETECTED:', {
-                rowIndex,
-                fieldName,
-                gridValue: `"${gridValue}"`,
-                globalStateValue: `"${actualValue}"`
-            });
+        // Only warn about significant mismatches, and auto-fix them silently
+        if (gridValue.trim() !== actualValue.trim() && gridValue !== actualValue) {
+            // Auto-fix the mismatch silently (no console spam)
+            if (globalState.csvData[rowIndex]) {
+                globalState.csvData[rowIndex][fieldName] = gridValue;
+            }
+            if (globalState.editedCsvData[rowIndex]) {
+                globalState.editedCsvData[rowIndex][fieldName] = gridValue;
+            }
+            
+            // Only log significant mismatches (more than 10 characters difference)
+            if (Math.abs(gridValue.length - actualValue.length) > 10) {
+                console.info('[CSV_DEBUG] Auto-fixed large mismatch:', {
+                    row: rowIndex,
+                    field: fieldName,
+                    sizeDiff: Math.abs(gridValue.length - actualValue.length)
+                });
+            }
         }
         
         event.node.setSelected(true);
-        this.showAgGridCellInPreviewer(rowIndex, fieldName, actualValue);
+        this.showAgGridCellInPreviewer(rowIndex, fieldName, gridValue);
+    }
+    
+    // ADD a method to fix mismatches when they're detected:
+    fixMismatch(rowIndex, fieldName, correctValue) {
+        console.log(`[CSV_DEBUG] Attempting to fix mismatch for row ${rowIndex}, field ${fieldName}`);
+        
+        // Update all data arrays to the correct value
+        if (globalState.csvData[rowIndex]) {
+            globalState.csvData[rowIndex][fieldName] = correctValue;
+        }
+        if (globalState.editedCsvData[rowIndex]) {
+            globalState.editedCsvData[rowIndex][fieldName] = correctValue;
+        }
+        
+        // Update the grid
+        if (this.gridApi && !this.gridApi.isDestroyed()) {
+            const rowNode = this.gridApi.getRowNode(rowIndex);
+            if (rowNode) {
+                rowNode.data[fieldName] = correctValue;
+                rowNode.setDataValue(fieldName, correctValue);
+                this.gridApi.refreshCells({
+                    rowNodes: [rowNode],
+                    columns: [fieldName],
+                    force: true
+                });
+            }
+        }
+        
+        console.log(`[CSV_DEBUG] Mismatch fix attempted for row ${rowIndex}, field ${fieldName}`);
     }
 
     showAgGridCellInPreviewer(rowIndex, fieldName, value) {

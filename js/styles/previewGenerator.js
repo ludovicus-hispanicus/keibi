@@ -172,7 +172,7 @@ export class PreviewGenerator {
             if (styleSuffix) {
                 const sfx = styleSuffix.toLowerCase();
                 if (sfx === 'bold') return `<strong>${value}</strong>`;
-                if (sfx === 'italic') return `<em>${value}</em>`;
+                if (sfx === 'italic') return `<i>${value}</i>`;
                 if (sfx === 'superscript') return `<sup>${value}</sup>`;
             }
             return value;
